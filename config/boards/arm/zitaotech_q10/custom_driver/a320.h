@@ -12,6 +12,7 @@ extern "C" {
 #endif
 
 #include <stdbool.h>
+#include <stdint.h>
 
 /**
  * @brief check if the touchpad is touched
@@ -19,6 +20,13 @@ extern "C" {
  * @return true if touched
  */
 bool tp_is_touched(void);
+
+/**
+ * @brief Total trackpad motion (|dx| + |dy| in sensor counts) since boot, wrapping on overflow.
+ *
+ * Compare two readings with unsigned subtraction to get the motion in between.
+ */
+uint32_t a320_motion_counts(void);
 
 #ifdef __cplusplus
 }

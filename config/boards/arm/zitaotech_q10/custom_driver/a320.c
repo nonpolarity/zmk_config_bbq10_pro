@@ -14,6 +14,7 @@
 #include <zephyr/input/input.h>
 #include <zephyr/logging/log.h>
 #include <zephyr/sys/byteorder.h>
+#include <zephyr/sys/atomic.h>
 #include <zephyr/dt-bindings/input/input-event-codes.h>
 
 #include <stdlib.h>
@@ -21,6 +22,7 @@
 #include <zmk/events/position_state_changed.h>
 #include <zmk/events/hid_indicators_changed.h>
 
+#include "a320.h"
 #include "trackpad_led.h"
 
 LOG_MODULE_REGISTER(a320, CONFIG_A320_LOG_LEVEL);
@@ -83,6 +85,9 @@ static const struct device *trackpoint_dev_ref = NULL;
 
 static int32_t scroll_remainder = 0;
 static int64_t scroll_last_motion_ms = 0;
+
+/* Raw motion total, read by the trackpad click behavior to tell a still long press from a drag */
+static atomic_t motion_counts = ATOMIC_INIT(0);
 
 static int16_t slow_remainder_x = 0;
 static int16_t slow_remainder_y = 0;
@@ -269,6 +274,8 @@ static void a320_poll_work_handler(struct k_work *work) {
 
         if (data->read_motion(data->dev, &dx, &dy) == 0 && (dx || dy)) {
 
+            atomic_add(&motion_counts, abs(dx) + abs(dy));
+
             bool scroll_mode = current_indicators & HID_INDICATORS_SCROLL_MODE;
 
             /* ===== SHIFT → ARROW MODE ===== */
@@ -336,6 +343,8 @@ reschedule:
 }
 
 bool tp_is_touched(void) { return touched; }
+
+uint32_t a320_motion_counts(void) { return (uint32_t)atomic_get(&motion_counts); }
 
 /* =========================
  * Init
