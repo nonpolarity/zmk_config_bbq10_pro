@@ -32,8 +32,12 @@ LOG_MODULE_REGISTER(a320, CONFIG_A320_LOG_LEVEL);
 #define SHIFT_ARROW_DEBOUNCE_MS 50 // 
 #define SHIFT_ARROW_RELEASE_MS 20  // 
 
-/* 按住这个键时触控板减速（鼠标、滚动模式都是）：0 键 = Ctrl，符号层上为数字 0 */
-#define SLOW_KEY_POSITION 38
+/*
+ * 鼠标模式下按住左 aA（Shift）减速、按住 0 键（Ctrl）加速，与 Windows“鼠标键”的习惯一致。
+ * 按物理位置判断（符号层上 0 键为数字 0）；滚动模式不受影响。
+ */
+#define SLOW_KEY_POSITION 37
+#define FAST_KEY_POSITION 38
 
 #ifndef CONFIG_A320_POLL_INTERVAL_MS
 #define CONFIG_A320_POLL_INTERVAL_MS 2
@@ -69,7 +73,8 @@ static const struct device *motion_gpio_dev;
  * ========================= */
 
 static bool touched = false;
-static bool ctrl_pressed = false;
+static bool slow_key_pressed = false;
+static bool fast_key_pressed = false;
 static bool shift_pressed = false;
 
 static bool arrow_pressed = false;
@@ -78,6 +83,9 @@ static const struct device *trackpoint_dev_ref = NULL;
 
 static int32_t scroll_remainder = 0;
 static int64_t scroll_last_motion_ms = 0;
+
+static int16_t slow_remainder_x = 0;
+static int16_t slow_remainder_y = 0;
 
 static struct k_work_delayable arrow_release_work;
 
@@ -125,7 +133,9 @@ static int key_listener_cb(const zmk_event_t *eh) {
         return 0;
 
     if (ev->position == SLOW_KEY_POSITION) {
-        ctrl_pressed = ev->state;
+        slow_key_pressed = ev->state;
+    } else if (ev->position == FAST_KEY_POSITION) {
+        fast_key_pressed = ev->state;
     }
 
     /*  if (ev->position == 27) {
@@ -197,8 +207,8 @@ static int a320_read_motion_37(const struct device *dev, int16_t *dx, int16_t *d
  * 滚动模式下累积垂直位移，每满 CONFIG_A320_TRACKPAD_SCROLL_INTERVAL 个计数滚一格，
  * 不足一格的余量留到下次，慢速滑动也能滚动。返回本次要发送的滚轮格数。
  */
-static int32_t a320_scroll_steps(int16_t dy, bool slow, int64_t now) {
-    int32_t per_step = CONFIG_A320_TRACKPAD_SCROLL_INTERVAL * (slow ? 2 : 1);
+static int32_t a320_scroll_steps(int16_t dy, int64_t now) {
+    int32_t per_step = CONFIG_A320_TRACKPAD_SCROLL_INTERVAL;
 
     if (now - scroll_last_motion_ms > SCROLL_IDLE_RESET_MS) {
         scroll_remainder = 0;
@@ -211,6 +221,36 @@ static int32_t a320_scroll_steps(int16_t dy, bool slow, int64_t now) {
     int32_t steps = scroll_remainder / per_step;
     scroll_remainder -= steps * per_step;
     return steps;
+}
+
+/* =========================
+ * Pointer speed keys
+ * ========================= */
+
+/* 位移减半，奇数余量留到下一次，慢慢移动时不会被截断成 0 */
+static int16_t a320_halve_with_carry(int16_t v, int16_t *remainder) {
+    int32_t total = v + *remainder;
+    int32_t out = total / 2;
+
+    *remainder = total - out * 2;
+    return out;
+}
+
+/* 按住 Shift 减速一半、按住 Ctrl 加速一倍，两个都按住时不变 */
+static void a320_apply_speed_keys(int16_t *dx, int16_t *dy) {
+    if (slow_key_pressed && !fast_key_pressed) {
+        *dx = a320_halve_with_carry(*dx, &slow_remainder_x);
+        *dy = a320_halve_with_carry(*dy, &slow_remainder_y);
+        return;
+    }
+
+    slow_remainder_x = 0;
+    slow_remainder_y = 0;
+
+    if (fast_key_pressed && !slow_key_pressed) {
+        *dx *= 2;
+        *dy *= 2;
+    }
 }
 
 /* =========================
@@ -230,11 +270,6 @@ static void a320_poll_work_handler(struct k_work *work) {
         if (data->read_motion(data->dev, &dx, &dy) == 0 && (dx || dy)) {
 
             bool scroll_mode = current_indicators & HID_INDICATORS_SCROLL_MODE;
-
-            if (ctrl_pressed && !scroll_mode) {
-                dx /= 2;
-                dy /= 2;
-            }
 
             /* ===== SHIFT → ARROW MODE ===== */
             /*
@@ -275,16 +310,21 @@ static void a320_poll_work_handler(struct k_work *work) {
             }
 
             if (scroll_mode) {
-                int32_t steps = a320_scroll_steps(dy, ctrl_pressed, k_uptime_get());
+                /* Shift、Ctrl 保留 Windows 的滚轮含义（横向滚动、缩放），不调整速度 */
+                int32_t steps = a320_scroll_steps(dy, k_uptime_get());
 
                 /* 不足一格不发送，避免每 2 ms 一个空报告挤占蓝牙队列 */
                 if (steps != 0) {
                     input_report_rel(data->dev, INPUT_REL_WHEEL, steps, true, K_FOREVER);
                 }
             } else {
-                input_report_rel(data->dev, INPUT_REL_X, dx, false, K_FOREVER);
-                input_report_rel(data->dev, INPUT_REL_Y, dy, true, K_FOREVER);
+                a320_apply_speed_keys(&dx, &dy);
                 touched = true;
+
+                if (dx || dy) {
+                    input_report_rel(data->dev, INPUT_REL_X, dx, false, K_FOREVER);
+                    input_report_rel(data->dev, INPUT_REL_Y, dy, true, K_FOREVER);
+                }
             }
         }
     } else {
