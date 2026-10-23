@@ -18,6 +18,9 @@
 #include "a320.h"
 
 #define HID_INDICATORS_CAPS_LOCK (1 << 1)
+#define HID_INDICATORS_SCROLL_LOCK (1 << 2)
+/* 触控板滚动模式：Scroll Lock（Call 键）或 CapsLock 打开时 */
+#define HID_INDICATORS_SCROLL_MODE (HID_INDICATORS_CAPS_LOCK | HID_INDICATORS_SCROLL_LOCK)
 
 LOG_MODULE_DECLARE(zmk, CONFIG_ZMK_LOG_LEVEL);
 
@@ -121,7 +124,7 @@ static void animation_work_handler(struct k_work *work) {
 
 static void polling_work_handler(struct k_work *work) {
     enum zmk_transport transport = zmk_endpoints_selected().transport;
-    bool current_capslock = (zmk_hid_indicators_get_current_profile() & HID_INDICATORS_CAPS_LOCK);
+    bool current_capslock = (zmk_hid_indicators_get_current_profile() & HID_INDICATORS_SCROLL_MODE);
     bool current_touch = tp_is_touched();
     bool current_active = (zmk_activity_get_state() == ZMK_ACTIVITY_ACTIVE);
     uint8_t current_brt = zmk_backlight_get_brt();
@@ -156,7 +159,7 @@ static void polling_work_handler(struct k_work *work) {
         }
     }
 
-    /* CapsLock 动画 */
+    /* 滚动模式（CapsLock / Scroll Lock）动画 */
     if (current_capslock != capslock_on) {
         capslock_on = current_capslock;
         if (capslock_on) {

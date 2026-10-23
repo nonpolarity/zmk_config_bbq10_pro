@@ -42,6 +42,9 @@ LOG_MODULE_REGISTER(a320, CONFIG_A320_LOG_LEVEL);
 
 static zmk_hid_indicators_t current_indicators;
 #define HID_INDICATORS_CAPS_LOCK (1 << 1)
+#define HID_INDICATORS_SCROLL_LOCK (1 << 2)
+/* 触控板滚动模式：Scroll Lock（Call 键）或 CapsLock 打开时 */
+#define HID_INDICATORS_SCROLL_MODE (HID_INDICATORS_CAPS_LOCK | HID_INDICATORS_SCROLL_LOCK)
 
 /* =========================
  * Motion GPIO
@@ -189,7 +192,7 @@ static void a320_poll_work_handler(struct k_work *work) {
 
         if (data->read_motion(data->dev, &dx, &dy) == 0 && (dx || dy)) {
 
-            bool capslock = current_indicators & HID_INDICATORS_CAPS_LOCK;
+            bool scroll_mode = current_indicators & HID_INDICATORS_SCROLL_MODE;
 
             if (ctrl_pressed) {
                 dx /= 2;
@@ -226,7 +229,7 @@ static void a320_poll_work_handler(struct k_work *work) {
 */
             /* ===== Normal mouse mode ===== */
 
-            if (!capslock) {
+            if (!scroll_mode) {
                 uint8_t brt = indicator_tp_get_last_valid_brightness();
                 float factor = 0.4f + 0.01f * brt;
 
@@ -234,7 +237,7 @@ static void a320_poll_work_handler(struct k_work *work) {
                 dy = dy * 3 / 2 * factor;
             }
 
-            if (capslock) {
+            if (scroll_mode) {
                 input_report_rel(data->dev, INPUT_REL_WHEEL, -dy / 16, true, K_FOREVER);
             } else {
                 input_report_rel(data->dev, INPUT_REL_X, dx, false, K_FOREVER);

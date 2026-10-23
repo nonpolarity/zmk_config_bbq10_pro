@@ -5,6 +5,16 @@ This page contains zmk firmware config for bbq10 keyboard pro
 <img width="800" alt="image" src="https://github.com/user-attachments/assets/e1e959c9-8ee6-4ef4-9ea9-cb80f5779503" />
 </p>
 
+## Keymap
+Layer diagrams for the keymap in `config/zitaotech_q10.keymap`.
+
+<p align="center">
+<img width="800" alt="第 0 层 · QWERTY" src="docs/keymap/keymap-0-qwerty.png" />
+<img width="800" alt="第 1 层 · 数字与符号" src="docs/keymap/keymap-1-symbols.png" />
+<img width="800" alt="第 2 层 · 导航与括号" src="docs/keymap/keymap-2-navigation.png" />
+<img width="800" alt="第 3 层 · FN 与系统" src="docs/keymap/keymap-3-fn.png" />
+</p>
+
 ### Use this repo to generate your own ZMK keymap for the bbq10 Pro keyboard.  
 ## Get started  
 ```Option1```   
