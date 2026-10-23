@@ -32,6 +32,9 @@ LOG_MODULE_REGISTER(a320, CONFIG_A320_LOG_LEVEL);
 #define SHIFT_ARROW_DEBOUNCE_MS 50 // 
 #define SHIFT_ARROW_RELEASE_MS 20  // 
 
+/* 按住这个键时触控板减速（鼠标、滚动模式都是）：0 键 = Ctrl，符号层上为数字 0 */
+#define SLOW_KEY_POSITION 38
+
 #ifndef CONFIG_A320_POLL_INTERVAL_MS
 #define CONFIG_A320_POLL_INTERVAL_MS 2
 #endif
@@ -121,7 +124,7 @@ static int key_listener_cb(const zmk_event_t *eh) {
     if (!ev)
         return 0;
 
-    if (ev->position == 37) {
+    if (ev->position == SLOW_KEY_POSITION) {
         ctrl_pressed = ev->state;
     }
 
