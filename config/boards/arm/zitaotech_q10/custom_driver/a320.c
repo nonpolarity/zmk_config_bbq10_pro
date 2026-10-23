@@ -36,6 +36,13 @@ LOG_MODULE_REGISTER(a320, CONFIG_A320_LOG_LEVEL);
 #define CONFIG_A320_POLL_INTERVAL_MS 2
 #endif
 
+#ifndef CONFIG_A320_TRACKPAD_SCROLL_INTERVAL
+#define CONFIG_A320_TRACKPAD_SCROLL_INTERVAL 50
+#endif
+
+/* 手指停住或抬起超过这个时间，丢弃不足一格的剩余滚动量 */
+#define SCROLL_IDLE_RESET_MS 200
+
 /* =========================
  * HID indicators
  * ========================= */
@@ -65,6 +72,9 @@ static bool shift_pressed = false;
 static bool arrow_pressed = false;
 static int64_t last_arrow_time = 0;
 static const struct device *trackpoint_dev_ref = NULL;
+
+static int32_t scroll_remainder = 0;
+static int64_t scroll_last_motion_ms = 0;
 
 static struct k_work_delayable arrow_release_work;
 
@@ -177,6 +187,30 @@ static int a320_read_motion_37(const struct device *dev, int16_t *dx, int16_t *d
 }
 
 /* =========================
+ * Scroll accumulation
+ * ========================= */
+
+/*
+ * 滚动模式下累积垂直位移，每满 CONFIG_A320_TRACKPAD_SCROLL_INTERVAL 个计数滚一格，
+ * 不足一格的余量留到下次，慢速滑动也能滚动。返回本次要发送的滚轮格数。
+ */
+static int32_t a320_scroll_steps(int16_t dy, bool slow, int64_t now) {
+    int32_t per_step = CONFIG_A320_TRACKPAD_SCROLL_INTERVAL * (slow ? 2 : 1);
+
+    if (now - scroll_last_motion_ms > SCROLL_IDLE_RESET_MS) {
+        scroll_remainder = 0;
+    }
+    scroll_last_motion_ms = now;
+
+    /* 手指上移 = 滚轮向上；想反向就把 -= 改成 += */
+    scroll_remainder -= dy;
+
+    int32_t steps = scroll_remainder / per_step;
+    scroll_remainder -= steps * per_step;
+    return steps;
+}
+
+/* =========================
  * Poll work
  * ========================= */
 
@@ -194,7 +228,7 @@ static void a320_poll_work_handler(struct k_work *work) {
 
             bool scroll_mode = current_indicators & HID_INDICATORS_SCROLL_MODE;
 
-            if (ctrl_pressed) {
+            if (ctrl_pressed && !scroll_mode) {
                 dx /= 2;
                 dy /= 2;
             }
@@ -238,7 +272,12 @@ static void a320_poll_work_handler(struct k_work *work) {
             }
 
             if (scroll_mode) {
-                input_report_rel(data->dev, INPUT_REL_WHEEL, -dy / 16, true, K_FOREVER);
+                int32_t steps = a320_scroll_steps(dy, ctrl_pressed, k_uptime_get());
+
+                /* 不足一格不发送，避免每 2 ms 一个空报告挤占蓝牙队列 */
+                if (steps != 0) {
+                    input_report_rel(data->dev, INPUT_REL_WHEEL, steps, true, K_FOREVER);
+                }
             } else {
                 input_report_rel(data->dev, INPUT_REL_X, dx, false, K_FOREVER);
                 input_report_rel(data->dev, INPUT_REL_Y, dy, true, K_FOREVER);
