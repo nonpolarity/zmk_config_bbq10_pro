@@ -141,7 +141,7 @@
         sym_layer {
 
             bindings = <        
-                 &kp C_VOL_UP                                                                                       &kp C_VOL_DN
+                 &trans                                                                                             &trans
     &trans                  &td3                                &mkp LCLK                          &kp F5                            &kp EQUAL
     &kp HASH     &kp N1     &kp N2      &kp N3    &ht LBKT LPAR &ht RBKT RPAR     &kp UNDER        &kp MINUS        &kp PLUS         &kp AT
     &kp STAR     &kp N4     &kp N5      &kp N6    &kp SLASH     &kp COLON         &kp SEMI         &kp APOS         &kp DQT          &kp DEL
@@ -153,7 +153,7 @@
         upper_layer {
 
             bindings = <
-                 &msc SCRL_UP                                                                                       &msc SCRL_DOWN
+                 &trans                                                                                             &trans
     &trans                  &kp LC(ESC)                              &mkp MCLK                      &kp LA(LEFT)                     &kp LA(RIGHT)
     &kp HOME     &kp UP     &kp END     &kp PG_UP       &kp LC(LA(TAB))     &kp PRCNT        &kp LT           &kp GT           &kp PIPE         &kp EQUAL
     &kp LEFT     &kp DOWN   &kp RIGHT   &kp PG_DN       &kp BSLH            &kp AMPS         &kp LBRC         &kp RBRC         &kp CARET        &kp BSPC
@@ -165,7 +165,7 @@
         fn_layer {
 
             bindings = <
-                 &kp C_MUTE                                                                                   &kp PSCRN
+                 &trans                                                                                             &trans
     &bt BT_SEL 0           &bt BT_SEL 1                        &td0                          &bt BT_SEL 2                     &bt BT_SEL 3
     &kp F11      &kp F1    &kp F2      &kp F3     &kp LC(LS(ESC)) &none      &kp K_APP       &none           &kp CLCK         &ext_power EP_TOG
     &kp F12      &kp F4    &kp F5      &kp F6     &rgb_ug RGB_BRD &bl BL_DEC &rgb_ug RGB_TOG &bl BL_INC      &rgb_ug RGB_BRI  &none
