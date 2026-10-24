@@ -60,10 +60,9 @@ LOG_MODULE_REGISTER(a320, CONFIG_A320_LOG_LEVEL);
  * ========================= */
 
 static zmk_hid_indicators_t current_indicators;
-#define HID_INDICATORS_CAPS_LOCK (1 << 1)
 #define HID_INDICATORS_SCROLL_LOCK (1 << 2)
-/* 触控板滚动模式：Scroll Lock（Call 键）或 CapsLock 打开时 */
-#define HID_INDICATORS_SCROLL_MODE (HID_INDICATORS_CAPS_LOCK | HID_INDICATORS_SCROLL_LOCK)
+/* 触控板滚动模式只跟随 Scroll Lock（单击 Call 键）；Caps Lock 只管大写，不影响触控板 */
+#define HID_INDICATORS_SCROLL_MODE HID_INDICATORS_SCROLL_LOCK
 
 /* =========================
  * Motion GPIO

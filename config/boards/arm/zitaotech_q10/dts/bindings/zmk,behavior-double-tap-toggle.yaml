@@ -1,0 +1,19 @@
+# SPDX-License-Identifier: MIT
+
+description: |
+  Toggle-style key with an instant single tap and a double tap. Every press runs the first binding
+  at once, so a single tap has no delay. A second press within tapping-term-ms of the first runs the
+  first binding again, which undoes a toggle such as Scroll Lock, and then taps the second binding.
+  Example: bindings = <&kp SLCK>, <&kp CAPS>;
+
+compatible: "zmk,behavior-double-tap-toggle"
+
+include: zero_param.yaml
+
+properties:
+  bindings:
+    type: phandle-array
+    required: true
+  tapping-term-ms:
+    type: int
+    default: 400

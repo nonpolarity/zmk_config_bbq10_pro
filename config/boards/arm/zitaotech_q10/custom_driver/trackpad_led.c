@@ -19,8 +19,7 @@
 
 #define HID_INDICATORS_CAPS_LOCK (1 << 1)
 #define HID_INDICATORS_SCROLL_LOCK (1 << 2)
-/* 触控板滚动模式：Scroll Lock（Call 键）或 CapsLock 打开时 */
-#define HID_INDICATORS_SCROLL_MODE (HID_INDICATORS_CAPS_LOCK | HID_INDICATORS_SCROLL_LOCK)
+/* 滚动模式只跟随 Scroll Lock（单击 Call 键），灯呼吸；Caps Lock（双击 Call 键）时灯常亮 */
 
 LOG_MODULE_DECLARE(zmk, CONFIG_ZMK_LOG_LEVEL);
 
@@ -37,6 +36,7 @@ static const struct device *const led_dev = DEVICE_DT_GET(DT_CHOSEN(zmk_trackpad
 #define BRT_MAX 100
 #define BRT_LOW 20
 #define BRT_STEP 5
+#define BRT_CAPS BRT_LOW /* Caps Lock 打开时触控板灯常亮的亮度 */
 
 #define ANIMATION_INTERVAL_MS 20
 #define POLLING_INTERVAL_MS 5
@@ -50,7 +50,8 @@ static struct k_work_delayable animation_work;
 static struct k_work_delayable auto_off_work;
 static struct k_work_delayable usb_flash_work;
 
-static bool capslock_on = false;
+static bool scroll_mode_on = false;
+static bool caps_lock_on = false;
 static bool touch_active = false;
 static bool animation_increasing = true;
 static uint8_t brightness = BRT_MIN;
@@ -76,11 +77,14 @@ static void set_led_brightness(uint8_t level) {
     }
 }
 
+/* 没有触摸、不在滚动模式时的亮度：Caps Lock 打开时常亮，否则熄灭 */
+static uint8_t idle_brightness(void) { return caps_lock_on ? BRT_CAPS : 0; }
+
 /* USB 闪烁处理 */
 static void usb_flash_work_handler(struct k_work *work) {
     if (!usb_mode) {
-        /* 如果已经不在 USB 模式，确保灯灭并退出 */
-        set_led_brightness(0);
+        /* 如果已经不在 USB 模式，恢复蓝牙模式的灯并退出 */
+        set_led_brightness(idle_brightness());
         return;
     }
 
@@ -93,15 +97,15 @@ static void usb_flash_work_handler(struct k_work *work) {
 }
 
 static void auto_off_work_handler(struct k_work *work) {
-    if (!capslock_on && !touch_active) {
+    if (!scroll_mode_on && !touch_active) {
         manual_override = false;
-        set_led_brightness(0);
+        set_led_brightness(idle_brightness());
         LOG_DBG("Auto-off triggered after inactivity");
     }
 }
 
 static void animation_work_handler(struct k_work *work) {
-    if (!capslock_on)
+    if (!scroll_mode_on)
         return;
 
     if (animation_increasing) {
@@ -124,7 +128,9 @@ static void animation_work_handler(struct k_work *work) {
 
 static void polling_work_handler(struct k_work *work) {
     enum zmk_transport transport = zmk_endpoints_selected().transport;
-    bool current_capslock = (zmk_hid_indicators_get_current_profile() & HID_INDICATORS_SCROLL_MODE);
+    zmk_hid_indicators_t indicators = zmk_hid_indicators_get_current_profile();
+    bool current_scroll = indicators & HID_INDICATORS_SCROLL_LOCK;
+    bool current_caps = indicators & HID_INDICATORS_CAPS_LOCK;
     bool current_touch = tp_is_touched();
     bool current_active = (zmk_activity_get_state() == ZMK_ACTIVITY_ACTIVE);
     uint8_t current_brt = zmk_backlight_get_brt();
@@ -145,10 +151,10 @@ static void polling_work_handler(struct k_work *work) {
 
     /* ---------------- BLE 模式 ---------------- */
     if (usb_mode) {
-        /* 从 USB 切回 BLE，需要停止闪烁并熄灯 */
+        /* 从 USB 切回 BLE，需要停止闪烁并恢复蓝牙模式的灯 */
         usb_mode = false;
         k_work_cancel_delayable(&usb_flash_work);
-        set_led_brightness(0);
+        set_led_brightness(idle_brightness());
         LOG_INF("Exited USB flash mode");
     }
 
@@ -159,10 +165,13 @@ static void polling_work_handler(struct k_work *work) {
         }
     }
 
-    /* 滚动模式（CapsLock / Scroll Lock）动画 */
-    if (current_capslock != capslock_on) {
-        capslock_on = current_capslock;
-        if (capslock_on) {
+    bool caps_changed = current_caps != caps_lock_on;
+    caps_lock_on = current_caps;
+
+    /* 滚动模式（Scroll Lock）动画 */
+    if (current_scroll != scroll_mode_on) {
+        scroll_mode_on = current_scroll;
+        if (scroll_mode_on) {
             brightness = BRT_MIN;
             animation_increasing = true;
             k_work_reschedule(&animation_work, K_NO_WAIT);
@@ -179,13 +188,18 @@ static void polling_work_handler(struct k_work *work) {
                 set_led_brightness(last_valid_brt);
                 k_work_cancel_delayable(&auto_off_work);
             } else {
-                set_led_brightness(0);
+                set_led_brightness(idle_brightness());
             }
         }
     }
 
+    /* Caps Lock 变化：没有触摸、不在滚动模式时立刻更新常亮 / 熄灭 */
+    if (caps_changed && !scroll_mode_on && !touch_active) {
+        set_led_brightness(idle_brightness());
+    }
+
     /* 触摸事件 */
-    if (!capslock_on && current_touch != touch_active) {
+    if (!scroll_mode_on && current_touch != touch_active) {
         touch_active = current_touch;
         if (touch_active) {
             manual_override = true;
@@ -200,7 +214,7 @@ static void polling_work_handler(struct k_work *work) {
     }
 
     /* 背光亮度变化 */
-    if (!capslock_on && !touch_active && current_brt != last_backlight_brt && keyboard_active) {
+    if (!scroll_mode_on && !touch_active && current_brt != last_backlight_brt && keyboard_active) {
         last_backlight_brt = current_brt;
         if (current_brt > 0) {
             manual_override = true;
@@ -225,7 +239,7 @@ static int indicator_tp_init(void) {
     usb_mode = false;
     usb_flash_state = false;
     last_backlight_brt = zmk_backlight_get_brt();
-    capslock_on = touch_active = manual_override = keyboard_active = false;
+    scroll_mode_on = caps_lock_on = touch_active = manual_override = keyboard_active = false;
 
     k_work_init_delayable(&polling_work, polling_work_handler);
     k_work_init_delayable(&animation_work, animation_work_handler);
