@@ -148,10 +148,16 @@
             bindings = <&kp N2>, <&kp TILDE>;
             mods = <(MOD_LSFT|MOD_RSFT)>;
         };
-        sym_slash: slash_pipe_backslash {
+        sym_8: shift_8_backslash {
             compatible = "zmk,behavior-mod-morph";
             #binding-cells = <0>;
-            bindings = <&ht BSLH SLASH>, <&kp PIPE>;    /* tap /, Shift |, long-press \ : / | \ by angle */
+            bindings = <&kp N8>, <&kp BSLH>;
+            mods = <(MOD_LSFT|MOD_RSFT)>;
+        };
+        sym_9: shift_9_pipe {
+            compatible = "zmk,behavior-mod-morph";
+            #binding-cells = <0>;
+            bindings = <&kp N9>, <&kp PIPE>;
             mods = <(MOD_LSFT|MOD_RSFT)>;
         };
         sym_plus: shift_plus_equal {
@@ -231,8 +237,8 @@
                  &trans                                                                                             &trans
     &trans                  &trans                              &trans                             &trans                            &trans
     &kp HASH     &sym_1     &sym_2      &kp N3    &kp LPAR      &kp RPAR          &sym_under       &sym_minus       &sym_plus        &kp AT
-    &kp STAR     &kp N4     &kp N5      &kp N6    &sym_slash    &kp COLON         &sym_semi        &sym_apos        &kp DQT          &kp DEL
-    &trans       &kp N7     &kp N8      &kp N9    &kp QMARK     &kp EXCL          &kp COMMA        &kp DOT          &tdf             &kp ENTER
+    &kp STAR     &kp N4     &kp N5      &kp N6    &kp SLASH     &kp COLON         &sym_semi        &sym_apos        &kp DQT          &kp DEL
+    &trans       &kp N7     &sym_8      &sym_9    &kp QMARK     &kp EXCL          &kp COMMA        &kp DOT          &tdf             &kp ENTER
     &trans                  &kp N0                              &kp SPACE                          &to DEFAULT                       &trans
             >;
         };
