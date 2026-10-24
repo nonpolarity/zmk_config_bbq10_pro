@@ -135,7 +135,7 @@
         };
     };
     behaviors {
-        /* symbol layer: Shift + a key whose shifted symbol is elsewhere on the keyboard types another symbol */
+        /* symbol layer: Shift + key types the symbol shown in the key's top-right corner on the diagram */
         sym_1: shift_1_grave {
             compatible = "zmk,behavior-mod-morph";
             #binding-cells = <0>;
@@ -148,16 +148,16 @@
             bindings = <&kp N2>, <&kp TILDE>;
             mods = <(MOD_LSFT|MOD_RSFT)>;
         };
-        sym_8: shift_8_backslash {
+        sym_slash: slash_pipe_backslash {
             compatible = "zmk,behavior-mod-morph";
             #binding-cells = <0>;
-            bindings = <&kp N8>, <&kp BSLH>;
+            bindings = <&ht BSLH SLASH>, <&kp PIPE>;    /* tap /, Shift |, long-press \ : / | \ by angle */
             mods = <(MOD_LSFT|MOD_RSFT)>;
         };
-        sym_9: shift_9_pipe {
+        sym_plus: shift_plus_equal {
             compatible = "zmk,behavior-mod-morph";
             #binding-cells = <0>;
-            bindings = <&kp N9>, <&kp PIPE>;
+            bindings = <&kp PLUS>, <&kp EQUAL>;
             mods = <(MOD_LSFT|MOD_RSFT)>;
         };
         sym_under: shift_underscore_lbkt {
@@ -230,9 +230,9 @@
             bindings = <        
                  &trans                                                                                             &trans
     &trans                  &trans                              &trans                             &trans                            &trans
-    &kp HASH     &sym_1     &sym_2      &kp N3    &kp LPAR      &kp RPAR          &sym_under       &sym_minus       &ht EQUAL PLUS   &kp AT
-    &kp STAR     &kp N4     &kp N5      &kp N6    &kp SLASH     &kp COLON         &sym_semi        &sym_apos        &kp DQT          &kp DEL
-    &trans       &kp N7     &sym_8      &sym_9    &kp QMARK     &kp EXCL          &kp COMMA        &kp DOT          &tdf             &kp ENTER
+    &kp HASH     &sym_1     &sym_2      &kp N3    &kp LPAR      &kp RPAR          &sym_under       &sym_minus       &sym_plus        &kp AT
+    &kp STAR     &kp N4     &kp N5      &kp N6    &sym_slash    &kp COLON         &sym_semi        &sym_apos        &kp DQT          &kp DEL
+    &trans       &kp N7     &kp N8      &kp N9    &kp QMARK     &kp EXCL          &kp COMMA        &kp DOT          &tdf             &kp ENTER
     &trans                  &kp N0                              &kp SPACE                          &to DEFAULT                       &trans
             >;
         };
