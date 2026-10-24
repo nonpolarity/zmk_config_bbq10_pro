@@ -99,6 +99,9 @@ static atomic_t motion_counts = ATOMIC_INIT(0);
 static int16_t slow_remainder_x = 0;
 static int16_t slow_remainder_y = 0;
 
+static int32_t pointer_remainder_x = 0;
+static int32_t pointer_remainder_y = 0;
+
 static struct k_work_delayable arrow_release_work;
 
 /* =========================
@@ -265,6 +268,18 @@ static void a320_scroll_steps(int16_t dx, int16_t dy, int64_t now, int32_t *step
  * Pointer speed keys
  * ========================= */
 
+/*
+ * 指针速度随背光亮度变化：系数 = (40 + 亮度) / 100，约 0.5–1.4 倍。
+ * 不足 1 的余量留到下一次；直接截断的话，亮度低于 60% 时只动 1 个计数的慢速移动会全部变成 0。
+ */
+static int16_t a320_scale_with_carry(int16_t v, int32_t percent, int32_t *remainder) {
+    int32_t total = v * percent + *remainder;
+    int32_t out = total / 100;
+
+    *remainder = total - out * 100;
+    return out;
+}
+
 /* 位移减半，奇数余量留到下一次，慢慢移动时不会被截断成 0 */
 static int16_t a320_halve_with_carry(int16_t v, int16_t *remainder) {
     int32_t total = v + *remainder;
@@ -342,11 +357,10 @@ static void a320_poll_work_handler(struct k_work *work) {
             /* ===== Normal mouse mode ===== */
 
             if (!scroll_mode) {
-                uint8_t brt = indicator_tp_get_last_valid_brightness();
-                float factor = 0.4f + 0.01f * brt;
+                int32_t percent = 40 + indicator_tp_get_last_valid_brightness();
 
-                dx = dx * 3 / 2 * factor;
-                dy = dy * 3 / 2 * factor;
+                dx = a320_scale_with_carry(dx * 3 / 2, percent, &pointer_remainder_x);
+                dy = a320_scale_with_carry(dy * 3 / 2, percent, &pointer_remainder_y);
             }
 
             if (scroll_mode) {
