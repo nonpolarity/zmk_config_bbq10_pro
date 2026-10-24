@@ -21,6 +21,7 @@
 #define SYM 1
 #define UPPER 2
 #define FN 3
+#define FKEYS 4
 
 #define SL_TO(layer) &sl_to layer layer //tap -> sticky layer, double tap -> to layer
 
@@ -77,7 +78,7 @@
             #binding-cells = <2>;
             flavor = "tap-preferred";       /* only holding for tapping-term-ms counts as a long press */
             tapping-term-ms = <500>;
-            bindings = <&to>, <&sl>;          /* &lp_to LAYER LAYER: short press = LAYER for the next key only, long press = lock LAYER */
+            bindings = <&to>, <&sl>;          /* &lp_to HOLD TAP: short press = layer TAP for the next key only, long press = lock layer HOLD */
         };
     };
     behaviors {
@@ -128,8 +129,8 @@
         combo_fn {
             timeout-ms = <100>;
             key-positions = <40 41>;    /* the symbol and navigation layer keys, bottom right */
-            bindings = <&lp_to FN FN>;  /* short press: FN for the next key only, hold 0.5 s: lock FN */
-            layers = <DEFAULT SYM UPPER>;
+            bindings = <&lp_to FN FKEYS>;   /* short press: F1-F12 for the next key only, hold 0.5 s: lock the whole FN layer */
+            layers = <DEFAULT SYM UPPER FKEYS>;
         };
         combo_fn_exit {
             timeout-ms = <100>;
@@ -195,6 +196,18 @@
     &kp F11      &kp F1    &kp F2      &kp F3     &kp LC(LS(ESC)) &none      &kp K_APP       &none           &kp CLCK         &ext_power EP_TOG
     &kp F12      &kp F4    &kp F5      &kp F6     &rgb_ug RGB_BRD &bl BL_DEC &rgb_ug RGB_TOG &bl BL_INC      &rgb_ug RGB_BRI  &none
     &trans       &kp F7    &kp F8      &kp F9     &none        &none         &none           &sys_reset      &td_boot_out     &none
+    &trans                 &trans                              &kp F10                       &to DEFAULT                      &to DEFAULT
+            >;
+        };
+
+        fkeys_layer {
+
+            bindings = <
+                 &trans                                                                                             &trans
+    &trans                  &trans                              &trans                             &trans                            &trans
+    &kp F11      &kp F1    &kp F2      &kp F3     &trans       &trans        &trans          &trans          &trans           &trans
+    &kp F12      &kp F4    &kp F5      &kp F6     &trans       &trans        &trans          &trans          &trans           &trans
+    &trans       &kp F7    &kp F8      &kp F9     &trans       &trans        &trans          &trans          &trans           &trans
     &trans                 &trans                              &kp F10                       &to DEFAULT                      &to DEFAULT
             >;
         };
