@@ -72,11 +72,12 @@
         };
     };
     behaviors {
-        td3: tap_stickylayer_doubletap_tolayer_3 {
-            compatible = "zmk,behavior-tap-dance";
-            #binding-cells = <0>;
-            tapping-term-ms = <400>;
-            bindings = <&sl FN>, <&to FN>;
+        lp_to: long_press_to_layer {
+            compatible = "zmk,behavior-hold-tap";
+            #binding-cells = <2>;
+            flavor = "tap-preferred";       /* only holding for tapping-term-ms counts as a long press */
+            tapping-term-ms = <500>;
+            bindings = <&to>, <&none>;        /* &lp_to LAYER 0: long press locks LAYER, short press does nothing */
         };
     };
     behaviors {
@@ -125,10 +126,16 @@
     combos {
         compatible = "zmk,combos";
         combo_fn {
-            timeout-ms = <80>;
+            timeout-ms = <100>;
             key-positions = <40 41>;    /* the symbol and navigation layer keys, bottom right */
-            bindings = <&td3>;          /* tap: next key from FN, double-tap: lock FN, hold: FN while held */
+            bindings = <&lp_to FN 0>;   /* hold both keys for 0.5 s to enter and lock FN */
             layers = <DEFAULT SYM UPPER>;
+        };
+        combo_fn_exit {
+            timeout-ms = <100>;
+            key-positions = <40 41>;
+            bindings = <&to DEFAULT>;   /* on FN, both keys together return to layer 0, like either key alone */
+            layers = <FN>;
         };
     };
 
