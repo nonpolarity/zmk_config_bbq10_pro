@@ -77,7 +77,7 @@
             #binding-cells = <2>;
             flavor = "tap-preferred";       /* only holding for tapping-term-ms counts as a long press */
             tapping-term-ms = <500>;
-            bindings = <&to>, <&none>;        /* &lp_to LAYER 0: long press locks LAYER, short press does nothing */
+            bindings = <&to>, <&sl>;          /* &lp_to LAYER LAYER: short press = LAYER for the next key only, long press = lock LAYER */
         };
     };
     behaviors {
@@ -128,7 +128,7 @@
         combo_fn {
             timeout-ms = <100>;
             key-positions = <40 41>;    /* the symbol and navigation layer keys, bottom right */
-            bindings = <&lp_to FN 0>;   /* hold both keys for 0.5 s to enter and lock FN */
+            bindings = <&lp_to FN FN>;  /* short press: FN for the next key only, hold 0.5 s: lock FN */
             layers = <DEFAULT SYM UPPER>;
         };
         combo_fn_exit {
