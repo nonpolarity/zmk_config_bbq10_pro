@@ -118,6 +118,14 @@
         };
     };
     behaviors {
+        bspc_del: backspace_delete {
+            compatible = "zmk,behavior-mod-morph";
+            #binding-cells = <0>;
+            bindings = <&kp BSPC>, <&kp DEL>;    /* tap: Backspace, Shift+tap: Delete (Shift is not sent); same on every layer */
+            mods = <(MOD_LSFT|MOD_RSFT)>;
+        };
+    };
+    behaviors {
         hm: homerow_mods {
             compatible = "zmk,behavior-hold-tap";
             #binding-cells = <2>;
@@ -225,7 +233,7 @@
                  &mkp LCLK                                                                                          &mkp RCLK
     &scroll_cw              &kp LGUI                            &tpc LCLK RCLK                     &ht K_BACK ESC                    &kp TAB
     &kp Q              &kp W      &kp E       &kp R     &kp T         &kp Y             &kp U            &kp I            &kp O            &kp P
-    &kp A              &kp S      &kp D       &kp F     &kp G         &kp H             &kp J            &kp K            &kp L            &kp BSPC
+    &kp A              &kp S      &kp D       &kp F     &kp G         &kp H             &kp J            &kp K            &kp L            &bspc_del
     &sk LALT           &kp Z      &kp X       &kp C     &kp V         &kp B             &kp N            &kp M            &kp DLLR         &kp ENTER
     &sk_kp LSHFT LSHFT      &sk_kp LCTRL LCTRL                        &kp SPACE                          &td1                              &sk_kp RSHFT RSHFT
             >;
@@ -237,7 +245,7 @@
                  &trans                                                                                             &trans
     &trans                  &trans                              &trans                             &trans                            &trans
     &kp HASH     &sym_1     &sym_2      &kp N3    &kp LPAR      &kp RPAR          &sym_under       &sym_minus       &sym_plus        &kp AT
-    &kp STAR     &kp N4     &kp N5      &kp N6    &kp SLASH     &kp COLON         &sym_semi        &sym_apos        &kp DQT          &kp DEL
+    &kp STAR     &kp N4     &kp N5      &kp N6    &kp SLASH     &kp COLON         &sym_semi        &sym_apos        &kp DQT          &trans
     &trans       &kp N7     &sym_8      &sym_9    &kp QMARK     &kp EXCL          &kp COMMA        &kp DOT          &tdf             &kp ENTER
     &trans                  &kp N0                              &kp SPACE                          &to DEFAULT                       &trans
             >;
@@ -249,7 +257,7 @@
                  &trans                                                                                             &trans
     &trans                  &trans                              &trans                             &trans                            &trans
     &kp HOME     &kp UP     &kp END     &kp PG_UP       &kp LC(LA(TAB))     &bt BT_SEL 0     &bt BT_SEL 1     &bt BT_SEL 2     &bt BT_SEL 3     &ext_power EP_TOG
-    &kp LEFT     &kp DOWN   &kp RIGHT   &kp PG_DN       &rgb_ug RGB_BRD     &bl BL_DEC       &rgb_ug RGB_TOG  &bl BL_INC       &rgb_ug RGB_BRI  &kp BSPC
+    &kp LEFT     &kp DOWN   &kp RIGHT   &kp PG_DN       &rgb_ug RGB_BRD     &bl BL_DEC       &rgb_ug RGB_TOG  &bl BL_INC       &rgb_ug RGB_BRI  &trans
     &trans       &kp LC(LEFT) &kp LC(RIGHT) &kp LC(BSPC) &kp LC(DEL)        &td_bt_clr       &td_out          &td_reset        &td_boot         &kp ENTER
     &trans                  &trans                                          &kp SPACE                         &to SYM                           &trans
             >;
