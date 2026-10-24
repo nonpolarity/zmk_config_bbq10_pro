@@ -148,18 +148,6 @@
             bindings = <&kp N2>, <&kp TILDE>;
             mods = <(MOD_LSFT|MOD_RSFT)>;
         };
-        sym_9: shift_9_pipe {
-            compatible = "zmk,behavior-mod-morph";
-            #binding-cells = <0>;
-            bindings = <&kp N9>, <&kp PIPE>;
-            mods = <(MOD_LSFT|MOD_RSFT)>;
-        };
-        sym_slash: shift_slash_backslash {
-            compatible = "zmk,behavior-mod-morph";
-            #binding-cells = <0>;
-            bindings = <&kp SLASH>, <&kp BSLH>;
-            mods = <(MOD_LSFT|MOD_RSFT)>;
-        };
         sym_under: shift_underscore_lbkt {
             compatible = "zmk,behavior-mod-morph";
             #binding-cells = <0>;
@@ -231,8 +219,8 @@
                  &trans                                                                                             &trans
     &trans                  &trans                              &trans                             &trans                            &trans
     &kp HASH     &sym_1     &sym_2      &kp N3    &ht LBKT LPAR &ht RBKT RPAR     &sym_under       &sym_minus       &ht EQUAL PLUS   &kp AT
-    &kp STAR     &kp N4     &kp N5      &kp N6    &sym_slash    &kp COLON         &sym_semi        &sym_apos        &kp DQT          &kp DEL
-    &trans       &kp N7     &kp N8      &sym_9    &kp QMARK     &kp EXCL          &kp COMMA        &kp DOT          &tdf             &kp ENTER
+    &kp STAR     &kp N4     &kp N5      &kp N6    &ht BSLH SLASH &kp COLON        &sym_semi        &sym_apos        &kp DQT          &kp DEL
+    &trans       &kp N7     &kp N8      &kp N9    &kp QMARK     &kp EXCL          &kp COMMA        &kp DOT          &tdf             &kp ENTER
     &trans                  &kp N0                              &kp SPACE                          &to DEFAULT                       &trans
             >;
         };
