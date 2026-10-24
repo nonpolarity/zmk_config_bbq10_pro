@@ -20,8 +20,7 @@
 #define DEFAULT 0
 #define SYM 1
 #define UPPER 2
-#define FN 3
-#define FKEYS 4
+#define FKEYS 3
 
 #define SL_TO(layer) &sl_to layer layer //tap -> sticky layer, double tap -> to layer
 
@@ -33,19 +32,30 @@
 
 / {
     behaviors {
-        td0: tap_dance_0 {
+        /* system keys on the navigation layer: a single tap does nothing, a double tap runs them */
+        td_bt_clr: double_tap_bt_clear {
             compatible = "zmk,behavior-tap-dance";
             #binding-cells = <0>;
             tapping-term-ms = <400>;
-            bindings = <&mkp LCLK>, <&bt BT_CLR>;
+            bindings = <&none>, <&bt BT_CLR>;
         };
-    };
-    behaviors {
-        td_boot_out: td_boot_out {
+        td_out: double_tap_output_toggle {
             compatible = "zmk,behavior-tap-dance";
             #binding-cells = <0>;
-            tapping-term-ms = <400>;           
-            bindings = <&bootloader>, <&out OUT_TOG>;
+            tapping-term-ms = <400>;
+            bindings = <&none>, <&out OUT_TOG>;
+        };
+        td_reset: double_tap_reset {
+            compatible = "zmk,behavior-tap-dance";
+            #binding-cells = <0>;
+            tapping-term-ms = <400>;
+            bindings = <&none>, <&sys_reset>;
+        };
+        td_boot: double_tap_bootloader {
+            compatible = "zmk,behavior-tap-dance";
+            #binding-cells = <0>;
+            tapping-term-ms = <400>;
+            bindings = <&none>, <&bootloader>;
         };
     };
     behaviors {
@@ -65,11 +75,11 @@
         };
     };
     behaviors {
-        td2: tap_stickylayer_doubletap_tolayer_2 {
+        tdf: tap_stickylayer_doubletap_tolayer_fkeys {
             compatible = "zmk,behavior-tap-dance";
             #binding-cells = <0>;
             tapping-term-ms = <400>;
-            bindings = <&sl 2>, <&to 2>;
+            bindings = <&sl FKEYS>, <&to FKEYS>;    /* Fn: tap = F keys for the next key only, double-tap = lock */
         };
     };
     behaviors {
@@ -124,19 +134,70 @@
             move-threshold = <6>;      /* trackpad counts that turn a press into a drag */
         };
     };
+    behaviors {
+        /* symbol layer: Shift + a key whose shifted symbol is elsewhere on the keyboard types another symbol */
+        sym_1: shift_1_grave {
+            compatible = "zmk,behavior-mod-morph";
+            #binding-cells = <0>;
+            bindings = <&kp N1>, <&kp GRAVE>;
+            mods = <(MOD_LSFT|MOD_RSFT)>;
+        };
+        sym_2: shift_2_tilde {
+            compatible = "zmk,behavior-mod-morph";
+            #binding-cells = <0>;
+            bindings = <&kp N2>, <&kp TILDE>;
+            mods = <(MOD_LSFT|MOD_RSFT)>;
+        };
+        sym_9: shift_9_pipe {
+            compatible = "zmk,behavior-mod-morph";
+            #binding-cells = <0>;
+            bindings = <&kp N9>, <&kp PIPE>;
+            mods = <(MOD_LSFT|MOD_RSFT)>;
+        };
+        sym_slash: shift_slash_backslash {
+            compatible = "zmk,behavior-mod-morph";
+            #binding-cells = <0>;
+            bindings = <&kp SLASH>, <&kp BSLH>;
+            mods = <(MOD_LSFT|MOD_RSFT)>;
+        };
+        sym_under: shift_underscore_lbkt {
+            compatible = "zmk,behavior-mod-morph";
+            #binding-cells = <0>;
+            bindings = <&kp UNDER>, <&kp LBKT>;
+            mods = <(MOD_LSFT|MOD_RSFT)>;
+        };
+        sym_minus: shift_minus_rbkt {
+            compatible = "zmk,behavior-mod-morph";
+            #binding-cells = <0>;
+            bindings = <&kp MINUS>, <&kp RBKT>;
+            mods = <(MOD_LSFT|MOD_RSFT)>;
+        };
+        sym_semi: shift_semicolon_lbrc {
+            compatible = "zmk,behavior-mod-morph";
+            #binding-cells = <0>;
+            bindings = <&kp SEMI>, <&kp LBRC>;
+            mods = <(MOD_LSFT|MOD_RSFT)>;
+        };
+        sym_apos: shift_apostrophe_rbrc {
+            compatible = "zmk,behavior-mod-morph";
+            #binding-cells = <0>;
+            bindings = <&kp APOS>, <&kp RBRC>;
+            mods = <(MOD_LSFT|MOD_RSFT)>;
+        };
+    };
     combos {
         compatible = "zmk,combos";
-        combo_fn {
+        combo_nav {
             timeout-ms = <100>;
-            key-positions = <40 41>;    /* the symbol and navigation layer keys, bottom right */
-            bindings = <&lp_to FN FKEYS>;   /* short press: F1-F12 for the next key only, hold 0.5 s: lock the whole FN layer */
-            layers = <DEFAULT SYM UPPER FKEYS>;
+            key-positions = <40 41>;    /* the symbol layer key and the right aA (Shift), bottom right */
+            bindings = <&lp_to UPPER UPPER>;   /* short press: navigation for the next key only, hold 0.5 s: lock navigation */
+            layers = <DEFAULT SYM>;
         };
-        combo_fn_exit {
+        combo_nav_exit {
             timeout-ms = <100>;
             key-positions = <40 41>;
-            bindings = <&to DEFAULT>;   /* on FN, both keys together return to layer 0, like either key alone */
-            layers = <FN>;
+            bindings = <&to DEFAULT>;   /* on the navigation and F-key layers, both keys together return to layer 0 */
+            layers = <UPPER FKEYS>;
         };
     };
 
@@ -160,7 +221,7 @@
     &kp Q              &kp W      &kp E       &kp R     &kp T         &kp Y             &kp U            &kp I            &kp O            &kp P
     &kp A              &kp S      &kp D       &kp F     &kp G         &kp H             &kp J            &kp K            &kp L            &kp BSPC
     &sk LALT           &kp Z      &kp X       &kp C     &kp V         &kp B             &kp N            &kp M            &ht DLLR SEMI    &kp ENTER
-    &sk_kp LSHFT LSHFT      &sk_kp LCTRL LCTRL                        &kp SPACE                          &td1                              &td2
+    &sk_kp LSHFT LSHFT      &sk_kp LCTRL LCTRL                        &kp SPACE                          &td1                              &sk_kp RSHFT RSHFT
             >;
         };
 
@@ -169,10 +230,10 @@
             bindings = <        
                  &trans                                                                                             &trans
     &trans                  &trans                              &trans                             &trans                            &trans
-    &kp HASH     &kp N1     &kp N2      &kp N3    &ht LBKT LPAR &ht RBKT RPAR     &kp UNDER        &kp MINUS        &ht EQUAL PLUS   &kp AT
-    &kp STAR     &kp N4     &kp N5      &kp N6    &kp SLASH     &kp COLON         &kp SEMI         &kp APOS         &kp DQT          &kp DEL
-    &trans       &kp N7     &kp N8      &kp N9    &kp QMARK     &kp EXCL          &kp COMMA        &kp DOT          &kp DLLR         &kp ENTER
-    &trans                  &kp N0                              &kp SPACE                          &to DEFAULT                       &to UPPER
+    &kp HASH     &sym_1     &sym_2      &kp N3    &ht LBKT LPAR &ht RBKT RPAR     &sym_under       &sym_minus       &ht EQUAL PLUS   &kp AT
+    &kp STAR     &kp N4     &kp N5      &kp N6    &sym_slash    &kp COLON         &sym_semi        &sym_apos        &kp DQT          &kp DEL
+    &trans       &kp N7     &kp N8      &sym_9    &kp QMARK     &kp EXCL          &kp COMMA        &kp DOT          &tdf             &kp ENTER
+    &trans                  &kp N0                              &kp SPACE                          &to DEFAULT                       &trans
             >;
         };
 
@@ -181,22 +242,10 @@
             bindings = <
                  &trans                                                                                             &trans
     &trans                  &trans                              &trans                             &trans                            &trans
-    &kp HOME     &kp UP     &kp END     &kp PG_UP       &kp LC(LA(TAB))     &kp PRCNT        &kp LT           &kp GT           &kp PIPE         &kp EQUAL
-    &kp LEFT     &kp DOWN   &kp RIGHT   &kp PG_DN       &kp BSLH            &kp AMPS         &kp LBRC         &kp RBRC         &kp CARET        &kp BSPC
-    &trans       &kp LC(LEFT) &kp LC(RIGHT) &kp LC(BSPC) &kp LC(DEL)        &kp TILDE        &kp LBKT         &kp RBKT         &kp GRAVE        &kp ENTER
-    &trans                  &trans                                          &kp SPACE                         &to SYM                           &to DEFAULT
-            >;
-        };
-
-        fn_layer {
-
-            bindings = <
-                 &trans                                                                                             &trans
-    &bt BT_SEL 0           &bt BT_SEL 1                        &td0                          &bt BT_SEL 2                     &bt BT_SEL 3
-    &kp F11      &kp F1    &kp F2      &kp F3     &kp LC(LS(ESC)) &none      &kp K_APP       &none           &kp CLCK         &ext_power EP_TOG
-    &kp F12      &kp F4    &kp F5      &kp F6     &rgb_ug RGB_BRD &bl BL_DEC &rgb_ug RGB_TOG &bl BL_INC      &rgb_ug RGB_BRI  &none
-    &trans       &kp F7    &kp F8      &kp F9     &none        &none         &none           &sys_reset      &td_boot_out     &none
-    &trans                 &trans                              &kp F10                       &to DEFAULT                      &to DEFAULT
+    &kp HOME     &kp UP     &kp END     &kp PG_UP       &kp LC(LA(TAB))     &bt BT_SEL 0     &bt BT_SEL 1     &bt BT_SEL 2     &bt BT_SEL 3     &ext_power EP_TOG
+    &kp LEFT     &kp DOWN   &kp RIGHT   &kp PG_DN       &rgb_ug RGB_BRD     &bl BL_DEC       &rgb_ug RGB_TOG  &bl BL_INC       &rgb_ug RGB_BRI  &kp BSPC
+    &trans       &kp LC(LEFT) &kp LC(RIGHT) &kp LC(BSPC) &kp LC(DEL)        &td_bt_clr       &td_out          &td_reset        &td_boot         &kp ENTER
+    &trans                  &trans                                          &kp SPACE                         &to SYM                           &trans
             >;
         };
 
@@ -205,10 +254,10 @@
             bindings = <
                  &trans                                                                                             &trans
     &trans                  &trans                              &trans                             &trans                            &trans
-    &kp F11      &kp F1    &kp F2      &kp F3     &trans       &trans        &trans          &trans          &trans           &trans
+    &kp F11      &kp F1    &kp F2      &kp F3     &kp LC(LS(ESC)) &trans     &kp K_APP       &trans          &kp CLCK         &trans
     &kp F12      &kp F4    &kp F5      &kp F6     &trans       &trans        &trans          &trans          &trans           &trans
     &trans       &kp F7    &kp F8      &kp F9     &trans       &trans        &trans          &trans          &trans           &trans
-    &trans                 &trans                              &kp F10                       &to DEFAULT                      &to DEFAULT
+    &trans                 &kp F10                             &trans                        &to DEFAULT                      &trans
             >;
         };
     };
