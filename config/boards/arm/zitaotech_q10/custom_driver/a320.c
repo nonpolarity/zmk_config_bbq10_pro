@@ -52,6 +52,9 @@ LOG_MODULE_REGISTER(a320, CONFIG_A320_LOG_LEVEL);
 /* 手指停住或抬起超过这个时间，丢弃不足一格的剩余滚动量 */
 #define SCROLL_IDLE_RESET_MS 200
 
+/* 每次滑动先移动这么多计数，再按位移较大的方向锁定为横向或竖向滚动 */
+#define SCROLL_AXIS_LOCK_COUNTS 16
+
 /* =========================
  * HID indicators
  * ========================= */
@@ -83,8 +86,12 @@ static bool arrow_pressed = false;
 static int64_t last_arrow_time = 0;
 static const struct device *trackpoint_dev_ref = NULL;
 
-static int32_t scroll_remainder = 0;
+static int32_t scroll_remainder_x = 0;
+static int32_t scroll_remainder_y = 0;
 static int64_t scroll_last_motion_ms = 0;
+
+enum scroll_axis { SCROLL_AXIS_NONE, SCROLL_AXIS_X, SCROLL_AXIS_Y };
+static enum scroll_axis scroll_axis = SCROLL_AXIS_NONE;
 
 /* Raw motion total, read by the trackpad click behavior to tell a still long press from a drag */
 static atomic_t motion_counts = ATOMIC_INIT(0);
@@ -209,23 +216,49 @@ static int a320_read_motion_37(const struct device *dev, int16_t *dx, int16_t *d
  * ========================= */
 
 /*
- * 滚动模式下累积垂直位移，每满 CONFIG_A320_TRACKPAD_SCROLL_INTERVAL 个计数滚一格，
- * 不足一格的余量留到下次，慢速滑动也能滚动。返回本次要发送的滚轮格数。
+ * 滚动模式下累积位移，每满 CONFIG_A320_TRACKPAD_SCROLL_INTERVAL 个计数滚一格，
+ * 不足一格的余量留到下次，慢速滑动也能滚动。
+ * 每次滑动只走一个方向：先移动 SCROLL_AXIS_LOCK_COUNTS 个计数，按位移较大的方向锁定，
+ * 停住或抬起超过 SCROLL_IDLE_RESET_MS 后重新判断，避免斜着滑时横竖一起滚。
+ * 通过 steps_x / steps_y 返回本次要发送的横向 / 竖向滚轮格数。
  */
-static int32_t a320_scroll_steps(int16_t dy, int64_t now) {
+static void a320_scroll_steps(int16_t dx, int16_t dy, int64_t now, int32_t *steps_x,
+                              int32_t *steps_y) {
     int32_t per_step = CONFIG_A320_TRACKPAD_SCROLL_INTERVAL;
 
+    *steps_x = 0;
+    *steps_y = 0;
+
     if (now - scroll_last_motion_ms > SCROLL_IDLE_RESET_MS) {
-        scroll_remainder = 0;
+        scroll_remainder_x = 0;
+        scroll_remainder_y = 0;
+        scroll_axis = SCROLL_AXIS_NONE;
     }
     scroll_last_motion_ms = now;
 
+    /* 手指右移 = 向右滚动；想反向就把 += 改成 -= */
+    scroll_remainder_x += dx;
     /* 手指上移 = 滚轮向上；想反向就把 -= 改成 += */
-    scroll_remainder -= dy;
+    scroll_remainder_y -= dy;
 
-    int32_t steps = scroll_remainder / per_step;
-    scroll_remainder -= steps * per_step;
-    return steps;
+    if (scroll_axis == SCROLL_AXIS_NONE) {
+        if (MAX(abs(scroll_remainder_x), abs(scroll_remainder_y)) <
+            MIN(SCROLL_AXIS_LOCK_COUNTS, per_step)) {
+            return;
+        }
+        scroll_axis =
+            abs(scroll_remainder_x) > abs(scroll_remainder_y) ? SCROLL_AXIS_X : SCROLL_AXIS_Y;
+    }
+
+    if (scroll_axis == SCROLL_AXIS_X) {
+        scroll_remainder_y = 0;
+        *steps_x = scroll_remainder_x / per_step;
+        scroll_remainder_x -= *steps_x * per_step;
+    } else {
+        scroll_remainder_x = 0;
+        *steps_y = scroll_remainder_y / per_step;
+        scroll_remainder_y -= *steps_y * per_step;
+    }
 }
 
 /* =========================
@@ -318,11 +351,16 @@ static void a320_poll_work_handler(struct k_work *work) {
 
             if (scroll_mode) {
                 /* Shift、Ctrl 保留 Windows 的滚轮含义（横向滚动、缩放），不调整速度 */
-                int32_t steps = a320_scroll_steps(dy, k_uptime_get());
+                int32_t steps_x, steps_y;
+
+                a320_scroll_steps(dx, dy, k_uptime_get(), &steps_x, &steps_y);
 
                 /* 不足一格不发送，避免每 2 ms 一个空报告挤占蓝牙队列 */
-                if (steps != 0) {
-                    input_report_rel(data->dev, INPUT_REL_WHEEL, steps, true, K_FOREVER);
+                if (steps_x != 0) {
+                    input_report_rel(data->dev, INPUT_REL_HWHEEL, steps_x, true, K_FOREVER);
+                }
+                if (steps_y != 0) {
+                    input_report_rel(data->dev, INPUT_REL_WHEEL, steps_y, true, K_FOREVER);
                 }
             } else {
                 a320_apply_speed_keys(&dx, &dy);

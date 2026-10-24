@@ -57,6 +57,7 @@ Layer diagrams for the keymap in `config/zitaotech_q10.keymap`.
 You can change the source code under the ```/config/boards/arm/zitaotech_q10/custom_driver```
 
 For example if you want to change the scroll direction in scroll mode (Scroll Lock or Caps Lock on):
-Go to `a320_scroll_steps()` in [a320.c](config/boards/arm/zitaotech_q10/custom_driver/a320.c) and change ```scroll_remainder -= dy``` to ```scroll_remainder += dy```
+Go to `a320_scroll_steps()` in [a320.c](config/boards/arm/zitaotech_q10/custom_driver/a320.c) and change ```scroll_remainder_y -= dy``` to ```scroll_remainder_y += dy``` for vertical scrolling, or ```scroll_remainder_x += dx``` to ```scroll_remainder_x -= dx``` for horizontal scrolling.
+Each swipe scrolls in one direction only: after `SCROLL_AXIS_LOCK_COUNTS` sensor counts it locks to the axis it moved more along, until the finger stops or lifts.
 
 The scroll speed is set by `CONFIG_A320_TRACKPAD_SCROLL_INTERVAL` in `config/zitaotech_q10.conf`: the trackpad movement (sensor counts) per wheel step, the bigger this value, the slower the trackpad scrolls.
