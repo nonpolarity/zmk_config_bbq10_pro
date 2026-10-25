@@ -37,6 +37,12 @@
 / {
     behaviors {
         /* system keys on the navigation layer: a single tap does nothing, a double tap runs them */
+        td_tp_pwr: double_tap_trackpad_power {
+            compatible = "zmk,behavior-tap-dance";
+            #binding-cells = <0>;
+            tapping-term-ms = <400>;
+            bindings = <&none>, <&ext_power EP_TOG>;    /* trackpad on/off: EXT_POWER powers the trackpad sensor; the state is saved and kept after a reboot */
+        };
         td_bt_clr: double_tap_bt_clear {
             compatible = "zmk,behavior-tap-dance";
             #binding-cells = <0>;
@@ -268,7 +274,7 @@
             bindings = <
                  &trans                                                                                             &trans
     &trans                  &trans                              &trans                             &trans                            &trans
-    &kp HOME     &kp UP     &kp END     &kp PG_UP       &kp LC(LA(TAB))     &bt BT_SEL 0     &bt BT_SEL 1     &bt BT_SEL 2     &bt BT_SEL 3     &ext_power EP_TOG
+    &kp HOME     &kp UP     &kp END     &kp PG_UP       &kp LC(LA(TAB))     &bt BT_SEL 0     &bt BT_SEL 1     &bt BT_SEL 2     &bt BT_SEL 3     &td_tp_pwr
     &kp LEFT     &kp DOWN   &kp RIGHT   &kp PG_DN       &rgb_ug RGB_BRD     &bl BL_DEC       &rgb_ug RGB_TOG  &bl BL_INC       &rgb_ug RGB_BRI  &trans
     &trans       &none      &none       &none           &tdf                &td_bt_clr       &td_out          &td_reset        &td_boot         &kp ENTER
     &trans                  &sk_kp LCTRL LCTRL                              &kp SPACE                         &to SYM                           &trans
