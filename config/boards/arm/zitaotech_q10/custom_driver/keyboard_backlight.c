@@ -42,6 +42,14 @@ static const struct device *const indiled_dev = DEVICE_DT_GET(DT_CHOSEN(zmk_keyb
 /* 层3双闪：亮、暗、亮、长暗（单位 ms） */
 static const uint16_t double_flash_steps_ms[] = {100, 100, 100, 700};
 
+/*
+ * 层1–3 的闪烁、呼吸、双闪以 RGB 亮度为最亮一档，暗的一档按比例变暗，再按 led_duty() 曲线输出。
+ * RGB 亮度低于 INDICATOR_BRT_MIN 时按它计算（最亮约 4%）：占空比只能按 1% 调，再暗就分不出闪烁和呼吸了。
+ */
+#define INDICATOR_BRT_MIN 20
+
+static uint8_t indicator_peak = INDICATOR_BRT_MIN;
+
 static bool prev_active = false;
 static int prev_layer = -1;
 static bool blink_on = false;
@@ -68,6 +76,11 @@ static void set_led_brightness(uint8_t level) {
     }
 }
 
+/* level：指示效果里的相对亮度（0–100），按当前 RGB 亮度缩放 */
+static void set_indicator_brightness(uint8_t level) {
+    set_led_brightness(led_duty(level * indicator_peak / 100));
+}
+
 /* 层1闪烁 */
 static void blink_work_handler(struct k_work *work) {
     if (prev_layer != 1) {
@@ -76,7 +89,7 @@ static void blink_work_handler(struct k_work *work) {
     }
 
     blink_on = !blink_on;
-    set_led_brightness(blink_on ? BRT_BLINK_HIGH : BRT_BLINK_LOW);
+    set_indicator_brightness(blink_on ? BRT_BLINK_HIGH : BRT_BLINK_LOW);
 
     k_work_reschedule(&blink_work, K_MSEC(BLINK_INTERVAL_MS));
 }
@@ -91,7 +104,7 @@ static void flash_work_handler(struct k_work *work) {
     }
 
     flash_step = (flash_step + 1) % ARRAY_SIZE(double_flash_steps_ms);
-    set_led_brightness((flash_step % 2 == 0) ? BRT_BLINK_HIGH : BRT_BLINK_LOW);
+    set_indicator_brightness((flash_step % 2 == 0) ? BRT_BLINK_HIGH : BRT_BLINK_LOW);
 
     k_work_reschedule(&flash_work, K_MSEC(double_flash_steps_ms[flash_step]));
 }
@@ -103,7 +116,7 @@ static void cycle_work_handler(struct k_work *work) {
         return;
     }
 
-    set_led_brightness(cycle_brightness);
+    set_indicator_brightness(cycle_brightness);
 
     if (cycle_direction_up) {
         cycle_brightness += CYCLE_BRT_STEP;
@@ -134,6 +147,9 @@ static void polling_work_handler(struct k_work *work) {
     }
 #endif
 
+    /* 每次轮询都更新，在导航层调 RGB 亮度时呼吸立即跟着变 */
+    indicator_peak = MAX(ug_brt, INDICATOR_BRT_MIN);
+
     if (current_layer != prev_layer || active != prev_active) {
         prev_layer = current_layer;
         prev_active = active;
@@ -160,7 +176,7 @@ static void polling_work_handler(struct k_work *work) {
              */
             blink_start_high = !rgb_on ? true : false;
             blink_on = blink_start_high;
-            set_led_brightness(blink_on ? BRT_BLINK_HIGH : BRT_BLINK_LOW);
+            set_indicator_brightness(blink_on ? BRT_BLINK_HIGH : BRT_BLINK_LOW);
             /* 使用半周期，避免首次到第二次闪烁间隔过长 */
             k_work_reschedule(&blink_work, K_MSEC(BLINK_INTERVAL_MS / 2));
             break;
@@ -173,7 +189,7 @@ static void polling_work_handler(struct k_work *work) {
         case 3:
             /* 层3（F 键）：双闪 */
             flash_step = 0;
-            set_led_brightness(BRT_BLINK_HIGH);
+            set_indicator_brightness(BRT_BLINK_HIGH);
             k_work_reschedule(&flash_work, K_MSEC(double_flash_steps_ms[0]));
             break;
 
