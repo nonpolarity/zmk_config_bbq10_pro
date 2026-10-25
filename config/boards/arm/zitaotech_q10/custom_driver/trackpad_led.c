@@ -42,6 +42,12 @@ static const struct device *const led_dev = DEVICE_DT_GET(DT_CHOSEN(zmk_trackpad
 #define BRT_STEP 5
 #define BRT_CAPS BRT_LOW /* Caps Lock 打开时触控板灯常亮的亮度 */
 
+/*
+ * 滚动模式的呼吸以触控板灯的亮度级别（背光 +/-，即触摸时的亮度）为最亮一档，暗的一档按比例变暗。
+ * 级别低于 BREATH_PEAK_MIN 时按它计算（最亮约 4%）：占空比只能按 1% 调，再暗就看不出呼吸了。
+ */
+#define BREATH_PEAK_MIN 20
+
 #define ANIMATION_INTERVAL_MS 20
 #define POLLING_INTERVAL_MS 5
 #define AUTO_OFF_DELAY_MS 5000
@@ -144,7 +150,7 @@ static void animation_work_handler(struct k_work *work) {
         }
     }
 
-    set_led_brightness(brightness);
+    set_led_brightness(brightness * MAX(last_valid_brt, BREATH_PEAK_MIN) / BRT_MAX);
     k_work_reschedule(&animation_work, K_MSEC(ANIMATION_INTERVAL_MS));
 }
 
@@ -217,6 +223,14 @@ static void polling_work_handler(struct k_work *work) {
         }
     }
 
+    /*
+     * 亮度级别随时跟随背光 +/-（滚动模式下也是，呼吸立即变）；背光关掉时按 BRT_MIN 计。
+     * 键盘空闲时背光自动熄灭、读到 0，保留上次的级别。
+     */
+    if (keyboard_active) {
+        last_valid_brt = MAX(BRT_MIN, current_brt);
+    }
+
     bool caps_changed = current_caps != caps_lock_on;
     caps_lock_on = current_caps;
 
@@ -234,9 +248,6 @@ static void polling_work_handler(struct k_work *work) {
             if (current_touch) {
                 touch_active = true;
                 manual_override = true;
-                if (keyboard_active) {
-                    last_valid_brt = MAX(BRT_MIN, current_brt);
-                }
                 set_led_brightness(last_valid_brt);
                 k_work_cancel_delayable(&auto_off_work);
             } else {
@@ -255,9 +266,6 @@ static void polling_work_handler(struct k_work *work) {
         touch_active = current_touch;
         if (touch_active) {
             manual_override = true;
-            if (keyboard_active) {
-                last_valid_brt = MAX(BRT_MIN, current_brt);
-            }
             set_led_brightness(last_valid_brt);
             k_work_cancel_delayable(&auto_off_work);
         } else {
@@ -270,7 +278,6 @@ static void polling_work_handler(struct k_work *work) {
         last_backlight_brt = current_brt;
         if (current_brt > 0) {
             manual_override = true;
-            last_valid_brt = MAX(BRT_MIN, current_brt);
             set_led_brightness(last_valid_brt);
             k_work_reschedule(&auto_off_work, K_MSEC(AUTO_OFF_DELAY_MS));
         }

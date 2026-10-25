@@ -65,3 +65,4 @@ The trackpad LED turns off after `CONFIG_TRACKPAD_LED_IDLE_TIMEOUT` milliseconds
 
 The trackpad LED and the key backlight turn their brightness level (0-100) into the PWM duty with `led_duty()` in [led_duty.h](config/boards/arm/zitaotech_q10/custom_driver/led_duty.h). It is squared, so the lowest step (10) is a faint glow at about 1% while 100 stays at 100%.
 The key backlight's layer indicators (blinking on layer 1, breathing on layer 2, double flash for Fn) peak at the RGB brightness as well, but at least at 20 (about 4%) so the effects can still be told apart; their dim phases scale down with it.
+In scroll mode the trackpad LED breathes up to its own brightness level, the backlight level set with the backlight keys (the one it shows when touched, which also sets the pointer speed), again at least 20.
