@@ -66,8 +66,8 @@ static struct k_work_delayable flash_work;
 
 /*
  * 保存的 RGB 亮度和开关要等 main() 里的 settings_load() 才读回来，比本驱动开始轮询晚。
- * 之前读到的是 ZMK 的默认值（亮度 100），第 0 层会一直按它点灯，开机后像是亮度被重设了。
- * settings_load() 读完后会调用各处理器的 commit，之后才开始点灯。
+ * 之前读到的是 ZMK 的默认值（亮度 100），第 0 层会按它点灯，直到切换层或空闲后唤醒。
+ * settings_load() 读完后会调用各处理器的 commit，之后才开始点灯，下面的保存检查也以读回的值为起点。
  */
 static bool settings_loaded = !IS_ENABLED(CONFIG_SETTINGS);
 
@@ -86,6 +86,26 @@ SETTINGS_STATIC_HANDLER_DEFINE(keyboard_backlight, "keyboard_backlight", NULL,
                                keyboard_backlight_settings_set, keyboard_backlight_settings_commit,
                                NULL);
 #endif
+
+/*
+ * ZMK v0.3.0 的 RGB 亮度 +/-（还有色相、饱和度）按键会换算成 RGB_COLOR_HSB，最后调用
+ * zmk_rgb_underglow_set_hsb()：只改内存里的状态，不像开关、换效果那样保存，关机再开机就回到上次保存的值。
+ * 轮询时发现颜色变了，就调用 ZMK 的保存函数，延迟 CONFIG_ZMK_SETTINGS_SAVE_DEBOUNCE 后写入 flash。
+ * 这个函数不在 ZMK 的头文件里，在这里声明。
+ */
+int zmk_rgb_underglow_save_state(void);
+
+static struct zmk_led_hsb last_rgb_color;
+static bool last_rgb_color_valid = false;
+
+static void save_rgb_color_if_changed(struct zmk_led_hsb color) {
+    if (last_rgb_color_valid && (color.h != last_rgb_color.h || color.s != last_rgb_color.s ||
+                                 color.b != last_rgb_color.b)) {
+        zmk_rgb_underglow_save_state();
+    }
+    last_rgb_color = color;
+    last_rgb_color_valid = true;
+}
 
 static void set_led_brightness(uint8_t level) {
     if (!device_is_ready(indiled_dev)) {
@@ -175,6 +195,8 @@ static void polling_work_handler(struct k_work *work) {
         rgb_on = true;
     }
 #endif
+
+    save_rgb_color_if_changed(ug);
 
     /* 每次轮询都更新，在导航层调 RGB 亮度时呼吸立即跟着变 */
     indicator_peak = MAX(ug_brt, INDICATOR_BRT_MIN);
