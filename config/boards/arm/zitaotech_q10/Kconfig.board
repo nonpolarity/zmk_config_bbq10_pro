@@ -14,6 +14,16 @@ config TRACKPAD_LED_BRIGHTNESS
     help
       The brightness value (0-100) to set the Trackpad LED when Caps Lock is active.
 
+config TRACKPAD_LED_IDLE_TIMEOUT
+    int "Trackpad LED idle timeout in milliseconds"
+    default 30000
+    range 0 3600000
+    help
+      The trackpad LED turns off after this long without a key press or trackpad
+      movement, also when it breathes in scroll mode, stays on for Caps Lock or
+      flashes for USB output, and comes back with the next key press or movement.
+      0 keeps it on.
+
 endmenu
 
 menu "A320 Trackpad Setting"

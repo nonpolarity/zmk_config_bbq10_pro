@@ -47,6 +47,10 @@ CONFIG_ZMK_BACKLIGHT_ON_START=y
 # enable automatic turn off when no keypress detected
 CONFIG_ZMK_BACKLIGHT_AUTO_OFF_IDLE=y                  
 
+# Trackpad LED Setting
+# turn the trackpad LED off after this many milliseconds without a key press or trackpad movement, 0 = never
+CONFIG_TRACKPAD_LED_IDLE_TIMEOUT=30000
+
 # HID indicator configuration
 CONFIG_ZMK_HID_INDICATORS=y
 

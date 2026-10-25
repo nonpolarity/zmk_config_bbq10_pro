@@ -60,3 +60,7 @@ Go to `a320_scroll_steps()` in [a320.c](config/boards/arm/zitaotech_q10/custom_d
 Each swipe scrolls in one direction only: after `SCROLL_AXIS_LOCK_COUNTS` sensor counts it locks to the axis it moved more along, until the finger stops or lifts.
 
 The scroll speed is set by `CONFIG_A320_TRACKPAD_SCROLL_INTERVAL` in `config/zitaotech_q10.conf`: the trackpad movement (sensor counts) per wheel step, the bigger this value, the slower the trackpad scrolls.
+
+The trackpad LED turns off after `CONFIG_TRACKPAD_LED_IDLE_TIMEOUT` milliseconds without a key press or trackpad movement (30000 in `config/zitaotech_q10.conf`, 0 keeps it on), also when it breathes in scroll mode, stays on for Caps Lock or flashes for USB output; the next key press or movement brings it back.
+
+The trackpad LED and the key backlight turn their brightness level (0-100) into the PWM duty with `led_duty()` in [led_duty.h](config/boards/arm/zitaotech_q10/custom_driver/led_duty.h). It is squared, so the lowest step (10) is a faint glow at about 1% while 100 stays at 100%.

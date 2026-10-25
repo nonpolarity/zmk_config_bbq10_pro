@@ -9,13 +9,17 @@
 #include <zephyr/devicetree.h>
 #include <zephyr/drivers/led.h>
 #include <zephyr/logging/log.h>
+#include <zephyr/sys/atomic.h>
 
 #include <zmk/endpoints.h>
+#include <zmk/event_manager.h>
+#include <zmk/events/position_state_changed.h>
 #include <zmk/hid_indicators.h>
 #include <zmk/backlight.h>
 #include <zmk/activity.h>
 #include "trackpad_led.h"
 #include "a320.h"
+#include "led_duty.h"
 
 #define HID_INDICATORS_CAPS_LOCK (1 << 1)
 #define HID_INDICATORS_SCROLL_LOCK (1 << 2)
@@ -42,6 +46,9 @@ static const struct device *const led_dev = DEVICE_DT_GET(DT_CHOSEN(zmk_trackpad
 #define POLLING_INTERVAL_MS 5
 #define AUTO_OFF_DELAY_MS 5000
 
+/* 没有按键、触控板也没动超过这个时间就熄灯（滚动呼吸、Caps Lock 常亮、USB 闪烁也一样），再操作即恢复 */
+#define IDLE_TIMEOUT_MS CONFIG_TRACKPAD_LED_IDLE_TIMEOUT
+
 #define FLASH_ON_MS 100   /* USB 模式亮灯时间 */
 #define FLASH_PERIOD 1000 /* USB 模式总周期 */
 
@@ -64,17 +71,32 @@ static bool keyboard_active = false;
 static bool usb_flash_state = false; /* true=亮灯，false=灭灯 */
 static bool usb_mode = false;        /* 当前是否处于 USB 传输模式 */
 
-static void set_led_brightness(uint8_t level) {
+static uint8_t requested_brt = 0; /* 指示逻辑要的亮度，空闲熄灯期间保留，恢复时重新点亮 */
+static bool led_idle = false;
+static int64_t last_activity_ms = 0;
+static uint32_t last_motion_counts = 0;
+static enum zmk_transport last_transport;
+static atomic_t key_activity = ATOMIC_INIT(0);
+
+/* 亮度按 led_duty() 的曲线输出，指针速度仍按换算前的亮度计算 */
+static void write_led(void) {
+    uint8_t duty = led_idle ? 0 : led_duty(requested_brt);
+
     if (!device_is_ready(led_dev)) {
         LOG_ERR("LED device not ready");
         return;
     }
     for (int i = 0; i < INDICATOR_LED_NUM_LEDS; i++) {
-        int err = led_set_brightness(led_dev, i, level);
+        int err = led_set_brightness(led_dev, i, duty);
         if (err < 0) {
             LOG_ERR("Failed to set LED[%d] brightness: %d", i, err);
         }
     }
+}
+
+static void set_led_brightness(uint8_t level) {
+    requested_brt = level;
+    write_led();
 }
 
 /* 没有触摸、不在滚动模式时的亮度：Caps Lock 打开时常亮，否则熄灭 */
@@ -126,6 +148,34 @@ static void animation_work_handler(struct k_work *work) {
     k_work_reschedule(&animation_work, K_MSEC(ANIMATION_INTERVAL_MS));
 }
 
+static int key_activity_listener(const zmk_event_t *eh) {
+    atomic_set(&key_activity, 1);
+    return ZMK_EV_EVENT_BUBBLE;
+}
+
+ZMK_LISTENER(trackpad_led_activity, key_activity_listener);
+ZMK_SUBSCRIPTION(trackpad_led_activity, zmk_position_state_changed);
+
+/* 按键（包括按下触控板）、触控板移动、USB / 蓝牙切换都算操作 */
+static void update_idle(int64_t now, enum zmk_transport transport) {
+    uint32_t motion = a320_motion_counts();
+    bool active = atomic_clear(&key_activity) || motion != last_motion_counts ||
+                  transport != last_transport;
+
+    last_motion_counts = motion;
+    last_transport = transport;
+    if (active) {
+        last_activity_ms = now;
+    }
+
+    bool idle = IDLE_TIMEOUT_MS > 0 && now - last_activity_ms >= IDLE_TIMEOUT_MS;
+
+    if (idle != led_idle) {
+        led_idle = idle;
+        write_led();
+    }
+}
+
 static void polling_work_handler(struct k_work *work) {
     enum zmk_transport transport = zmk_endpoints_selected().transport;
     zmk_hid_indicators_t indicators = zmk_hid_indicators_get_current_profile();
@@ -134,6 +184,8 @@ static void polling_work_handler(struct k_work *work) {
     bool current_touch = tp_is_touched();
     bool current_active = (zmk_activity_get_state() == ZMK_ACTIVITY_ACTIVE);
     uint8_t current_brt = zmk_backlight_get_brt();
+
+    update_idle(k_uptime_get(), transport);
 
     /* ---------------- USB 模式 ---------------- */
     if (transport == ZMK_TRANSPORT_USB) {
@@ -240,6 +292,8 @@ static int indicator_tp_init(void) {
     usb_flash_state = false;
     last_backlight_brt = zmk_backlight_get_brt();
     scroll_mode_on = caps_lock_on = touch_active = manual_override = keyboard_active = false;
+    last_activity_ms = k_uptime_get();
+    last_motion_counts = a320_motion_counts();
 
     k_work_init_delayable(&polling_work, polling_work_handler);
     k_work_init_delayable(&animation_work, animation_work_handler);

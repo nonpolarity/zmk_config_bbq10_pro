@@ -16,6 +16,8 @@
 #include <zmk/keymap.h>
 #include <zmk/events/activity_state_changed.h>
 
+#include "led_duty.h"
+
 LOG_MODULE_DECLARE(zmk, CONFIG_ZMK_LOG_LEVEL);
 
 BUILD_ASSERT(DT_HAS_CHOSEN(zmk_keyboard_backlight),
@@ -145,8 +147,8 @@ static void polling_work_handler(struct k_work *work) {
 
         switch (current_layer) {
         case 0:
-            /* 层0：跟随 RGB 和活动状态 */
-            uint8_t brt = (rgb_on && active) ? ug_brt : 0;
+            /* 层0：跟随 RGB 亮度和活动状态；按 led_duty() 曲线输出，最低一档（10）约 1%，只留微光 */
+            uint8_t brt = (rgb_on && active) ? led_duty(ug_brt) : 0;
             set_led_brightness(brt);
             break;
 
