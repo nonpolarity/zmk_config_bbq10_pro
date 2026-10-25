@@ -9,6 +9,7 @@
 #include <zephyr/devicetree.h>
 #include <zephyr/drivers/led.h>
 #include <zephyr/logging/log.h>
+#include <zephyr/settings/settings.h>
 
 #include <zmk/rgb_underglow.h>
 #include <zmk/event_manager.h>
@@ -62,6 +63,29 @@ static struct k_work_delayable polling_work;
 static struct k_work_delayable blink_work;
 static struct k_work_delayable cycle_work;
 static struct k_work_delayable flash_work;
+
+/*
+ * 保存的 RGB 亮度和开关要等 main() 里的 settings_load() 才读回来，比本驱动开始轮询晚。
+ * 之前读到的是 ZMK 的默认值（亮度 100），第 0 层会一直按它点灯，开机后像是亮度被重设了。
+ * settings_load() 读完后会调用各处理器的 commit，之后才开始点灯。
+ */
+static bool settings_loaded = !IS_ENABLED(CONFIG_SETTINGS);
+
+#if IS_ENABLED(CONFIG_SETTINGS)
+static int keyboard_backlight_settings_set(const char *name, size_t len, settings_read_cb read_cb,
+                                           void *cb_arg) {
+    return -ENOENT; /* 本驱动不保存设置，只用 commit 判断设置已读完 */
+}
+
+static int keyboard_backlight_settings_commit(void) {
+    settings_loaded = true;
+    return 0;
+}
+
+SETTINGS_STATIC_HANDLER_DEFINE(keyboard_backlight, "keyboard_backlight", NULL,
+                               keyboard_backlight_settings_set, keyboard_backlight_settings_commit,
+                               NULL);
+#endif
 
 static void set_led_brightness(uint8_t level) {
     if (!device_is_ready(indiled_dev)) {
@@ -136,6 +160,11 @@ static void cycle_work_handler(struct k_work *work) {
 }
 
 static void polling_work_handler(struct k_work *work) {
+    if (!settings_loaded) {
+        k_work_reschedule(&polling_work, K_MSEC(100));
+        return;
+    }
+
     bool active = (zmk_activity_get_state() == ZMK_ACTIVITY_ACTIVE);
     int current_layer = zmk_keymap_highest_layer_active();
     struct zmk_led_hsb ug = zmk_rgb_underglow_calc_brt(0);
