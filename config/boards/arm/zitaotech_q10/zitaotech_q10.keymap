@@ -83,7 +83,7 @@
             compatible = "zmk,behavior-tap-dance";
             #binding-cells = <0>;
             tapping-term-ms = <400>;
-            bindings = <&sl FKEYS>, <&to FKEYS>;    /* Fn: tap = F keys for the next key only, double-tap = lock */
+            bindings = <&sl FKEYS>, <&tog FKEYS>;    /* Fn on the navigation layer (V, right of F9): tap = Fn for the next key only, double-tap = Fn on/off; letter keys without an Fn function are blank */
         };
     };
     behaviors {
@@ -258,7 +258,7 @@
     &trans                  &trans                              &trans                             &trans                            &trans
     &kp HASH     &sym_1     &sym_2      &kp N3    &kp LPAR      &kp RPAR          &sym_under       &sym_minus       &sym_plus        &kp AT
     &kp STAR     &kp N4     &kp N5      &kp N6    &kp SLASH     &kp COLON         &sym_semi        &sym_apos        &kp DQT          &trans
-    &trans       &kp N7     &sym_8      &sym_9    &kp QMARK     &kp EXCL          &kp COMMA        &kp DOT          &tdf             &kp ENTER
+    &trans       &kp N7     &sym_8      &sym_9    &kp QMARK     &kp EXCL          &kp COMMA        &kp DOT          &trans           &kp ENTER
     &trans                  &kp N0                              &kp SPACE                          &to DEFAULT                       &trans
             >;
         };
@@ -270,8 +270,8 @@
     &trans                  &trans                              &trans                             &trans                            &trans
     &kp HOME     &kp UP     &kp END     &kp PG_UP       &kp LC(LA(TAB))     &bt BT_SEL 0     &bt BT_SEL 1     &bt BT_SEL 2     &bt BT_SEL 3     &ext_power EP_TOG
     &kp LEFT     &kp DOWN   &kp RIGHT   &kp PG_DN       &rgb_ug RGB_BRD     &bl BL_DEC       &rgb_ug RGB_TOG  &bl BL_INC       &rgb_ug RGB_BRI  &trans
-    &trans       &kp LC(LEFT) &kp LC(RIGHT) &kp LC(BSPC) &kp LC(DEL)        &td_bt_clr       &td_out          &td_reset        &td_boot         &kp ENTER
-    &trans                  &trans                                          &kp SPACE                         &to SYM                           &trans
+    &trans       &none      &none       &none           &tdf                &td_bt_clr       &td_out          &td_reset        &td_boot         &kp ENTER
+    &trans                  &sk_kp LCTRL LCTRL                              &kp SPACE                         &to SYM                           &trans
             >;
         };
 
@@ -280,10 +280,10 @@
             bindings = <
                  &trans                                                                                             &trans
     &trans                  &trans                              &trans                             &trans                            &trans
-    &kp F11      &kp F1    &kp F2      &kp F3     &kp LC(LS(ESC)) &trans     &kp K_APP       &trans          &kp CLCK         &trans
-    &kp F12      &kp F4    &kp F5      &kp F6     &trans       &trans        &trans          &trans          &trans           &trans
-    &trans       &kp F7    &kp F8      &kp F9     &trans       &trans        &trans          &trans          &trans           &trans
-    &trans                 &kp F10                             &trans                        &to DEFAULT                      &trans
+    &kp F11      &kp F1    &kp F2      &kp F3     &kp LC(LS(ESC)) &none      &kp K_APP       &none           &kp CLCK         &none
+    &kp F12      &kp F4    &kp F5      &kp F6     &none        &none         &none           &none           &none            &trans
+    &trans       &kp F7    &kp F8      &kp F9     &trans       &none         &none           &none           &none            &trans
+    &trans                 &sk_kp LCTRL LCTRL                  &kp F10                       &trans                           &trans
             >;
         };
     };
