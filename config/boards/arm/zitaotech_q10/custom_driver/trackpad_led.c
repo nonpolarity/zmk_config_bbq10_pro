@@ -21,9 +21,8 @@
 #include "a320.h"
 #include "led_duty.h"
 
-#define HID_INDICATORS_CAPS_LOCK (1 << 1)
 #define HID_INDICATORS_SCROLL_LOCK (1 << 2)
-/* 滚动模式只跟随 Scroll Lock（单击 Call 键），灯按亮度级别常亮；Caps Lock（双击 Call 键）时灯常亮；触摸触控板不点灯 */
+/* 滚动模式只跟随 Scroll Lock（单击 Call 键），灯按亮度级别常亮；不在滚动模式时熄灭，触摸触控板不点灯 */
 
 LOG_MODULE_DECLARE(zmk, CONFIG_ZMK_LOG_LEVEL);
 
@@ -38,14 +37,12 @@ static const struct device *const led_dev = DEVICE_DT_GET(DT_CHOSEN(zmk_trackpad
 
 #define BRT_MIN 10
 #define BRT_MAX 100
-#define BRT_LOW 20
-#define BRT_CAPS BRT_LOW /* Caps Lock 打开时触控板灯常亮的亮度 */
 
 #define ANIMATION_INTERVAL_MS 20 /* 滚动模式下按这个间隔刷新常亮的灯，调背光 +/- 时立即跟着变 */
 #define POLLING_INTERVAL_MS 5
 #define AUTO_OFF_DELAY_MS 5000
 
-/* 没有按键、触控板也没动超过这个时间就熄灯（滚动常亮、Caps Lock 常亮、USB 闪烁也一样），再操作即恢复 */
+/* 没有按键、触控板也没动超过这个时间就熄灯（滚动常亮、USB 闪烁也一样），再操作即恢复 */
 #define IDLE_TIMEOUT_MS CONFIG_TRACKPAD_LED_IDLE_TIMEOUT
 
 #define FLASH_ON_MS 100   /* USB 模式亮灯时间 */
@@ -57,7 +54,6 @@ static struct k_work_delayable auto_off_work;
 static struct k_work_delayable usb_flash_work;
 
 static bool scroll_mode_on = false;
-static bool caps_lock_on = false;
 
 static uint8_t last_valid_brt = BRT_MAX;
 static uint8_t last_backlight_brt = 0;
@@ -95,14 +91,11 @@ static void set_led_brightness(uint8_t level) {
     write_led();
 }
 
-/* 不在滚动模式时的亮度：Caps Lock 打开时常亮，否则熄灭 */
-static uint8_t idle_brightness(void) { return caps_lock_on ? BRT_CAPS : 0; }
-
 /* USB 闪烁处理 */
 static void usb_flash_work_handler(struct k_work *work) {
     if (!usb_mode) {
-        /* 如果已经不在 USB 模式，恢复蓝牙模式的灯并退出 */
-        set_led_brightness(idle_brightness());
+        /* 如果已经不在 USB 模式，恢复蓝牙模式的灯（熄灭）并退出 */
+        set_led_brightness(0);
         return;
     }
 
@@ -117,7 +110,7 @@ static void usb_flash_work_handler(struct k_work *work) {
 static void auto_off_work_handler(struct k_work *work) {
     if (!scroll_mode_on) {
         manual_override = false;
-        set_led_brightness(idle_brightness());
+        set_led_brightness(0);
         LOG_DBG("Auto-off triggered after inactivity");
     }
 }
@@ -163,7 +156,6 @@ static void polling_work_handler(struct k_work *work) {
     enum zmk_transport transport = zmk_endpoints_selected().transport;
     zmk_hid_indicators_t indicators = zmk_hid_indicators_get_current_profile();
     bool current_scroll = indicators & HID_INDICATORS_SCROLL_LOCK;
-    bool current_caps = indicators & HID_INDICATORS_CAPS_LOCK;
     bool current_active = (zmk_activity_get_state() == ZMK_ACTIVITY_ACTIVE);
     uint8_t current_brt = zmk_backlight_get_brt();
 
@@ -188,7 +180,7 @@ static void polling_work_handler(struct k_work *work) {
         /* 从 USB 切回 BLE，需要停止闪烁并恢复蓝牙模式的灯 */
         usb_mode = false;
         k_work_cancel_delayable(&usb_flash_work);
-        set_led_brightness(idle_brightness());
+        set_led_brightness(0);
         LOG_INF("Exited USB flash mode");
     }
 
@@ -207,9 +199,6 @@ static void polling_work_handler(struct k_work *work) {
         last_valid_brt = MAX(BRT_MIN, current_brt);
     }
 
-    bool caps_changed = current_caps != caps_lock_on;
-    caps_lock_on = current_caps;
-
     /* 滚动模式（Scroll Lock）：按亮度级别常亮 */
     if (current_scroll != scroll_mode_on) {
         scroll_mode_on = current_scroll;
@@ -218,13 +207,8 @@ static void polling_work_handler(struct k_work *work) {
         } else {
             k_work_cancel_delayable(&animation_work);
             manual_override = false;
-            set_led_brightness(idle_brightness());
+            set_led_brightness(0);
         }
-    }
-
-    /* Caps Lock 变化：不在滚动模式时立刻更新常亮 / 熄灭 */
-    if (caps_changed && !scroll_mode_on) {
-        set_led_brightness(idle_brightness());
     }
 
     /* 背光亮度变化 */
@@ -252,7 +236,7 @@ static int indicator_tp_init(void) {
     usb_mode = false;
     usb_flash_state = false;
     last_backlight_brt = zmk_backlight_get_brt();
-    scroll_mode_on = caps_lock_on = manual_override = keyboard_active = false;
+    scroll_mode_on = manual_override = keyboard_active = false;
     last_activity_ms = k_uptime_get();
     last_motion_counts = a320_motion_counts();
 

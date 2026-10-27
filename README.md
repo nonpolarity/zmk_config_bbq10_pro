@@ -55,13 +55,13 @@ Layer diagrams for the keymap in `config/zitaotech_q10.keymap`.
 ## Build your own driver
 You can change the source code under the ```/config/boards/arm/zitaotech_q10/custom_driver```
 
-For example if you want to change the scroll direction in scroll mode (Scroll Lock on: tap the Call key; double-tap it for Caps Lock, which does not affect the trackpad):
+For example if you want to change the scroll direction in scroll mode (Scroll Lock on: tap the Call key):
 Go to `a320_scroll_steps()` in [a320.c](config/boards/arm/zitaotech_q10/custom_driver/a320.c) and change ```scroll_remainder_y -= dy``` to ```scroll_remainder_y += dy``` for vertical scrolling, or ```scroll_remainder_x += dx``` to ```scroll_remainder_x -= dx``` for horizontal scrolling.
 Each swipe scrolls in one direction only: after `SCROLL_AXIS_LOCK_COUNTS` sensor counts it locks to the axis it moved more along, until the finger stops or lifts.
 
 The scroll speed is set by `CONFIG_A320_TRACKPAD_SCROLL_INTERVAL` in `config/zitaotech_q10.conf`: the trackpad movement (sensor counts) per wheel step, the bigger this value, the slower the trackpad scrolls.
 
-The trackpad LED turns off after `CONFIG_TRACKPAD_LED_IDLE_TIMEOUT` milliseconds without a key press or trackpad movement (30000 in `config/zitaotech_q10.conf`, 0 keeps it on), also when it is on in scroll mode, stays on for Caps Lock or flashes for USB output; the next key press or movement brings it back.
+The trackpad LED turns off after `CONFIG_TRACKPAD_LED_IDLE_TIMEOUT` milliseconds without a key press or trackpad movement (30000 in `config/zitaotech_q10.conf`, 0 keeps it on), also when it is on in scroll mode or flashes for USB output; the next key press or movement brings it back.
 
 The trackpad LED and the key backlight turn their brightness level (0-100) into the PWM duty with `led_duty()` in [led_duty.h](config/boards/arm/zitaotech_q10/custom_driver/led_duty.h). It is squared, so the lowest step (10) is a faint glow at about 1% while 100 stays at 100%.
 The key backlight's layer indicators (blinking on layer 1, breathing on layer 2, double flash for Fn) peak at the RGB brightness as well, but at least at 20 (about 4%) so the effects can still be told apart; their dim phases scale down with it.
