@@ -20,7 +20,7 @@
 #define DEFAULT 0
 #define SYM 1
 #define UPPER 2
-#define FKEYS 3
+#define SYSTEM 3
 
 #define SL_TO(layer) &sl_to layer layer //tap -> sticky layer, double tap -> to layer
 
@@ -36,7 +36,7 @@
 
 / {
     behaviors {
-        /* system keys on the navigation layer: a single tap does nothing, a double tap runs them */
+        /* system keys on the system layer: a single tap does nothing, a double tap runs them */
         td_tp_pwr: double_tap_trackpad_power {
             compatible = "zmk,behavior-tap-dance";
             #binding-cells = <0>;
@@ -83,22 +83,20 @@
             tapping-term-ms = <400>;
             bindings = <&sl 1>, <&to 1>;
         };
-    };
-    behaviors {
-        tdf: tap_stickylayer_doubletap_tolayer_fkeys {
+        td_nav: tap_stickylayer_doubletap_tolayer_nav {
             compatible = "zmk,behavior-tap-dance";
             #binding-cells = <0>;
             tapping-term-ms = <400>;
-            bindings = <&sl FKEYS>, <&tog FKEYS>;    /* Fn on the navigation layer (V, right of F9): tap = Fn for the next key only, double-tap = Fn on/off; letter keys without an Fn function are blank */
+            bindings = <&sl UPPER>, <&to UPPER>;    /* the $ key, used like the symbol layer key: tap = navigation for the next key only, double-tap = lock, hold = momentary; type $ with Shift+4 on the symbol layer */
         };
     };
     behaviors {
-        lp_to: long_press_to_layer {
+        lp_sys: long_press_to_layer_only {
             compatible = "zmk,behavior-hold-tap";
             #binding-cells = <2>;
             flavor = "tap-preferred";       /* only holding for tapping-term-ms counts as a long press */
-            tapping-term-ms = <500>;
-            bindings = <&to>, <&sl>;          /* &lp_to HOLD TAP: short press = layer TAP for the next key only, long press = lock layer HOLD */
+            tapping-term-ms = <1000>;
+            bindings = <&to>, <&none>;        /* &lp_sys LAYER 0: held 1 s = lock LAYER, a shorter press does nothing */
         };
     };
     behaviors {
@@ -211,17 +209,11 @@
     };
     combos {
         compatible = "zmk,combos";
-        combo_nav {
+        combo_system {
             timeout-ms = <100>;
-            key-positions = <40 41>;    /* the symbol layer key and the right aA (Shift), bottom right */
-            bindings = <&lp_to UPPER UPPER>;   /* short press: navigation for the next key only, hold 0.5 s: lock navigation */
-            layers = <DEFAULT SYM>;
-        };
-        combo_nav_exit {
-            timeout-ms = <100>;
-            key-positions = <40 41>;
-            bindings = <&to DEFAULT>;   /* on the navigation and F-key layers, both keys together return to layer 0 */
-            layers = <UPPER FKEYS>;
+            key-positions = <35 40>;    /* the navigation layer key ($) and the symbol layer key, pressed within 0.1 s */
+            bindings = <&lp_sys SYSTEM 0>;   /* held together for 1 s: lock the system layer; a shorter press does nothing */
+            layers = <DEFAULT SYM UPPER>;
         };
     };
 
@@ -244,7 +236,7 @@
     &scroll_cw              &kp LGUI                            &tpc LCLK RCLK                     &ht K_BACK ESC                    &kp TAB
     &kp Q              &kp W      &kp E       &kp R     &kp T         &kp Y             &kp U            &kp I            &kp O            &kp P
     &kp A              &kp S      &kp D       &kp F     &kp G         &kp H             &kp J            &kp K            &kp L            &bspc_del
-    &sk LALT           &kp Z      &kp X       &kp C     &kp V         &kp B             &kp N            &kp M            &kp DLLR         &kp ENTER
+    &sk LALT           &kp Z      &kp X       &kp C     &kp V         &kp B             &kp N            &kp M            &td_nav          &kp ENTER
     &sk LSHFT               &sk_kp LCTRL LCTRL                        &kp SPACE                          &td1                              &sk RSHFT
             >;
         };
@@ -266,22 +258,22 @@
             bindings = <
                  &trans                                                                                             &trans
     &trans                  &trans                              &trans                             &trans                            &trans
-    &kp HOME     &kp UP     &kp END     &kp PG_UP       &kp LC(LA(TAB))     &bt BT_SEL 0     &bt BT_SEL 1     &bt BT_SEL 2     &bt BT_SEL 3     &td_tp_pwr
-    &kp LEFT     &kp DOWN   &kp RIGHT   &kp PG_DN       &rgb_ug RGB_BRD     &bl BL_DEC       &rgb_ug RGB_TOG  &bl BL_INC       &rgb_ug RGB_BRI  &trans
-    &trans       &none      &none       &none           &tdf                &td_bt_clr       &td_out          &td_reset        &td_boot         &kp ENTER
-    &trans                  &sk_kp LCTRL LCTRL                              &kp SPACE                         &to SYM                           &trans
+    &kp F11      &kp F1     &kp F2      &kp F3          &kp LC(LA(TAB))     &kp PG_UP        &kp HOME         &kp UP           &kp END          &kp K_APP
+    &kp F12      &kp F4     &kp F5      &kp F6          &kp LC(LS(ESC))     &kp PG_DN        &kp LEFT         &kp DOWN         &kp RIGHT        &trans
+    &trans       &kp F7     &kp F8      &kp F9          &none               &none            &none            &none            &to DEFAULT      &kp ENTER
+    &trans                  &sk_kp LCTRL LCTRL                              &kp F10                           &to SYM                           &trans
             >;
         };
 
-        fkeys_layer {
+        system_layer {
 
             bindings = <
                  &trans                                                                                             &trans
     &trans                  &trans                              &trans                             &trans                            &trans
-    &kp F11      &kp F1    &kp F2      &kp F3     &kp LC(LS(ESC)) &none      &kp K_APP       &none           &none            &none
-    &kp F12      &kp F4    &kp F5      &kp F6     &none        &none         &none           &none           &none            &trans
-    &trans       &kp F7    &kp F8      &kp F9     &trans       &none         &none           &none           &none            &trans
-    &trans                 &sk_kp LCTRL LCTRL                  &kp F10                       &trans                           &trans
+    &none        &none      &none       &none           &none               &bt BT_SEL 0     &bt BT_SEL 1     &bt BT_SEL 2     &bt BT_SEL 3     &td_tp_pwr
+    &none        &none      &none       &none           &rgb_ug RGB_BRD     &bl BL_DEC       &rgb_ug RGB_TOG  &bl BL_INC       &rgb_ug RGB_BRI  &trans
+    &trans       &none      &none       &none           &none               &td_bt_clr       &td_out          &td_reset        &td_boot         &trans
+    &trans                  &trans                                          &trans                            &to DEFAULT                       &trans
             >;
         };
     };

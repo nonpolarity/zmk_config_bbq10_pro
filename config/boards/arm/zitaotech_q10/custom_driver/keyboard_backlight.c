@@ -138,11 +138,11 @@ static void blink_work_handler(struct k_work *work) {
     k_work_reschedule(&blink_work, K_MSEC(BLINK_INTERVAL_MS));
 }
 
-/* 层3（F 键，Fn）双闪 */
-static bool is_fn_layer(int layer) { return layer == 3; }
+/* 层3（系统层）双闪 */
+static bool is_system_layer(int layer) { return layer == 3; }
 
 static void flash_work_handler(struct k_work *work) {
-    if (!is_fn_layer(prev_layer)) {
+    if (!is_system_layer(prev_layer)) {
         set_led_brightness(0);
         return;
     }
@@ -238,7 +238,7 @@ static void polling_work_handler(struct k_work *work) {
             break;
 
         case 3:
-            /* 层3（F 键）：双闪 */
+            /* 层3（系统层）：双闪 */
             flash_step = 0;
             set_indicator_brightness(BRT_BLINK_HIGH);
             k_work_reschedule(&flash_work, K_MSEC(double_flash_steps_ms[0]));

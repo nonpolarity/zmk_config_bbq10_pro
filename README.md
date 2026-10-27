@@ -11,7 +11,8 @@ Layer diagrams for the keymap in `config/zitaotech_q10.keymap`.
 <p align="center">
 <img width="800" alt="第 0 层 · QWERTY" src="docs/keymap/keymap-0-qwerty.png" />
 <img width="800" alt="第 1 层 · 数字与符号" src="docs/keymap/keymap-1-symbols.png" />
-<img width="800" alt="第 2 层 · 导航与系统" src="docs/keymap/keymap-2-navigation.png" />
+<img width="800" alt="第 2 层 · 导航与 F 键" src="docs/keymap/keymap-2-navigation.png" />
+<img width="800" alt="第 3 层 · 系统" src="docs/keymap/keymap-3-system.png" />
 </p>
 
 ### Use this repo to generate your own ZMK keymap for the bbq10 Pro keyboard.  
@@ -64,5 +65,5 @@ The scroll speed is set by `CONFIG_A320_TRACKPAD_SCROLL_INTERVAL` in `config/zit
 The trackpad LED turns off after `CONFIG_TRACKPAD_LED_IDLE_TIMEOUT` milliseconds without a key press or trackpad movement (30000 in `config/zitaotech_q10.conf`, 0 keeps it on), also when it is on in scroll mode or flashes for USB output; the next key press or movement brings it back.
 
 The trackpad LED and the key backlight turn their brightness level (0-100) into the PWM duty with `led_duty()` in [led_duty.h](config/boards/arm/zitaotech_q10/custom_driver/led_duty.h). It is squared, so the lowest step (10) is a faint glow at about 1% while 100 stays at 100%.
-The key backlight's layer indicators (blinking on layer 1, breathing on layer 2, double flash for Fn) peak at the RGB brightness as well, but at least at 20 (about 4%) so the effects can still be told apart; their dim phases scale down with it.
+The key backlight's layer indicators (blinking on layer 1, breathing on layer 2, double flash on the system layer 3) peak at the RGB brightness as well, but at least at 20 (about 4%) so the effects can still be told apart; their dim phases scale down with it.
 In scroll mode the trackpad LED stays on at its own brightness level, the backlight level set with the backlight keys, which also sets the pointer speed. Touching the trackpad does not light it.
