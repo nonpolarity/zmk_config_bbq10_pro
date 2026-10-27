@@ -20,7 +20,7 @@ config TRACKPAD_LED_IDLE_TIMEOUT
     range 0 3600000
     help
       The trackpad LED turns off after this long without a key press or trackpad
-      movement, also when it breathes in scroll mode, stays on for Caps Lock or
+      movement, also when it is on in scroll mode, stays on for Caps Lock or
       flashes for USB output, and comes back with the next key press or movement.
       0 keeps it on.
 

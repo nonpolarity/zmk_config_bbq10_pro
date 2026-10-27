@@ -61,8 +61,8 @@ Each swipe scrolls in one direction only: after `SCROLL_AXIS_LOCK_COUNTS` sensor
 
 The scroll speed is set by `CONFIG_A320_TRACKPAD_SCROLL_INTERVAL` in `config/zitaotech_q10.conf`: the trackpad movement (sensor counts) per wheel step, the bigger this value, the slower the trackpad scrolls.
 
-The trackpad LED turns off after `CONFIG_TRACKPAD_LED_IDLE_TIMEOUT` milliseconds without a key press or trackpad movement (30000 in `config/zitaotech_q10.conf`, 0 keeps it on), also when it breathes in scroll mode, stays on for Caps Lock or flashes for USB output; the next key press or movement brings it back.
+The trackpad LED turns off after `CONFIG_TRACKPAD_LED_IDLE_TIMEOUT` milliseconds without a key press or trackpad movement (30000 in `config/zitaotech_q10.conf`, 0 keeps it on), also when it is on in scroll mode, stays on for Caps Lock or flashes for USB output; the next key press or movement brings it back.
 
 The trackpad LED and the key backlight turn their brightness level (0-100) into the PWM duty with `led_duty()` in [led_duty.h](config/boards/arm/zitaotech_q10/custom_driver/led_duty.h). It is squared, so the lowest step (10) is a faint glow at about 1% while 100 stays at 100%.
 The key backlight's layer indicators (blinking on layer 1, breathing on layer 2, double flash for Fn) peak at the RGB brightness as well, but at least at 20 (about 4%) so the effects can still be told apart; their dim phases scale down with it.
-In scroll mode the trackpad LED breathes up to its own brightness level, the backlight level set with the backlight keys (the one it shows when touched, which also sets the pointer speed), again at least 20.
+In scroll mode the trackpad LED stays on at its own brightness level, the backlight level set with the backlight keys, which also sets the pointer speed. Touching the trackpad does not light it.
