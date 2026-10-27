@@ -272,7 +272,7 @@
     &trans                  &trans                              &trans                             &trans                            &trans
     &none        &none      &none       &none           &none               &bt BT_SEL 0     &bt BT_SEL 1     &bt BT_SEL 2     &bt BT_SEL 3     &td_tp_pwr
     &none        &none      &none       &none           &rgb_ug RGB_BRD     &bl BL_DEC       &rgb_ug RGB_TOG  &bl BL_INC       &rgb_ug RGB_BRI  &trans
-    &trans       &none      &none       &none           &td_boot            &td_bt_clr       &td_out          &td_reset        &to UPPER        &trans
+    &trans       &none      &none       &none           &td_boot            &td_bt_clr       &td_out          &td_reset        &to DEFAULT      &trans
     &trans                  &trans                                          &trans                            &to DEFAULT                       &trans
             >;
         };
