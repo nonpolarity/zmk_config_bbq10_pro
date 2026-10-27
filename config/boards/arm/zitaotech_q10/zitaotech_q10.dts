@@ -84,13 +84,20 @@ RC(6,1)          RC(6,0)             RC(5,0)             RC(2,0)          RC(3,2
             , <&gpio0 22 (GPIO_ACTIVE_HIGH | GPIO_PULL_DOWN)>
             , <&gpio1 0 (GPIO_ACTIVE_HIGH | GPIO_PULL_DOWN)>
             ;
+        /*
+         * The BlackBerry keyboard matrix has no diodes. With the idle columns driven low, two keys
+         * held in the same row short the scanned column to an idle one and neither key is read
+         * (e.g. the right aA with P or A). Open source drives a column high only while it is
+         * scanned and lets it float otherwise, like the keyboard's own firmware; see also
+         * CONFIG_ZMK_KSCAN_MATRIX_WAIT_BETWEEN_OUTPUTS in zitaotech_q10.conf.
+         */
         col-gpios
-            = <&gpio0 14  GPIO_ACTIVE_HIGH>
-            , <&gpio0 15  GPIO_ACTIVE_HIGH>
-            , <&gpio0 17  GPIO_ACTIVE_HIGH>
-            , <&gpio0 3 GPIO_ACTIVE_HIGH>
-            , <&gpio0 28 GPIO_ACTIVE_HIGH>
-            , <&gpio0 20 GPIO_ACTIVE_HIGH>
+            = <&gpio0 14  (GPIO_ACTIVE_HIGH | GPIO_OPEN_SOURCE)>
+            , <&gpio0 15  (GPIO_ACTIVE_HIGH | GPIO_OPEN_SOURCE)>
+            , <&gpio0 17  (GPIO_ACTIVE_HIGH | GPIO_OPEN_SOURCE)>
+            , <&gpio0 3 (GPIO_ACTIVE_HIGH | GPIO_OPEN_SOURCE)>
+            , <&gpio0 28 (GPIO_ACTIVE_HIGH | GPIO_OPEN_SOURCE)>
+            , <&gpio0 20 (GPIO_ACTIVE_HIGH | GPIO_OPEN_SOURCE)>
             ;
     };
 

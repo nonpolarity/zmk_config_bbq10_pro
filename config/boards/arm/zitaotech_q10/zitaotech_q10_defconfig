@@ -71,6 +71,9 @@ CONFIG_A320_TRACKPAD_SPEEDMULTIPLIER_VERTICAL=100
 # Debuncing Setting 
 CONFIG_ZMK_KSCAN_DEBOUNCE_PRESS_MS=10
 CONFIG_ZMK_KSCAN_DEBOUNCE_RELEASE_MS=10
+# Matrix scan: the columns float when they are not scanned (open source in the board DTS), so give the
+# scanned column 5 microseconds to discharge through the row pull-downs before the next column is read
+CONFIG_ZMK_KSCAN_MATRIX_WAIT_BETWEEN_OUTPUTS=5
 
 # Enable both USB and BLE
 CONFIG_ZMK_USB=y
